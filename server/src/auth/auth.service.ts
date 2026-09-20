@@ -1,11 +1,11 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import * as bcryptImport from 'bcryptjs';
 import * as jwtImport from 'jsonwebtoken';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 // ESM/CJS 인터롭 안전 처리
 const bcrypt: any = (bcryptImport as any).default ?? bcryptImport;
 const jwt: any = (jwtImport as any).default ?? jwtImport;
-import { PrismaService } from '../prisma/prisma.service.js';
 
 const SECRET = process.env.JWT_SECRET || 'zhixian-dev-secret-change-me';
 
@@ -18,11 +18,35 @@ export type PublicUser = {
   points: number;
   level: number;
   avatar: string | null;
+  role: string;
 };
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
+
+  // 서버 시작 시 관리자 계정 보장 (admin / 1234)
+  async onModuleInit() {
+    try {
+      const admin = await this.prisma.user.findFirst({ where: { username: 'admin' } });
+      if (!admin) {
+        await this.prisma.user.create({
+          data: {
+            username: 'admin',
+            email: 'admin@zhixian.local',
+            passwordHash: bcrypt.hashSync('1234', 10),
+            nickname: '管理员',
+            city: '广州',
+            role: 'admin',
+          },
+        });
+      } else if ((admin as any).role !== 'admin') {
+        await this.prisma.user.update({ where: { id: admin.id }, data: { role: 'admin' } });
+      }
+    } catch {
+      // 부트스트랩 실패는 무시(앱 기동 우선)
+    }
+  }
 
   private publicUser(u: any): PublicUser {
     return {
@@ -34,6 +58,7 @@ export class AuthService {
       points: u.points,
       level: u.level,
       avatar: u.avatar ?? null,
+      role: u.role ?? 'user',
     };
   }
 
@@ -41,7 +66,6 @@ export class AuthService {
     return jwt.sign({ sub: userId }, SECRET, { expiresIn: '30d' });
   }
 
-  // 토큰(문자열 또는 "Bearer xxx")에서 userId 추출, 실패 시 null
   verifyToken(token?: string): string | null {
     if (!token) return null;
     const raw = token.startsWith('Bearer ') ? token.slice(7) : token;
@@ -81,6 +105,7 @@ export class AuthService {
     });
     if (!user || !user.passwordHash || !bcrypt.compareSync(dto.password, user.passwordHash))
       throw new UnauthorizedException('账号或密码错误');
+    if (user.status === 'banned') throw new UnauthorizedException('账号已被封禁');
     return { token: this.sign(user.id), user: this.publicUser(user) };
   }
 

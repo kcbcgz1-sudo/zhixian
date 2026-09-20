@@ -85,6 +85,14 @@ export default function MineScreen() {
             ))}
           </View>
 
+          {user.role === 'admin' && (
+            <Pressable style={styles.adminEntry} onPress={() => router.push('/admin' as any)}>
+              <Ionicons name="shield-checkmark" size={22} color="#fff" />
+              <Text style={styles.adminEntryText}>管理后台</Text>
+              <Ionicons name="chevron-forward" size={20} color="#fff" />
+            </Pressable>
+          )}
+
           <View style={styles.rows}>
             <Row label="我的发布" />
             <Row label="我的收藏" />
@@ -183,6 +191,8 @@ const styles = StyleSheet.create({
   statValue: { fontSize: F.h2, fontWeight: '800', color: Brand.greenDark },
   statLabel: { fontSize: F.small, color: Brand.textSub },
   rows: { marginTop: S.sm, borderWidth: 1, borderColor: Brand.border, borderRadius: R.md },
+  adminEntry: { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: Brand.greenDark, borderRadius: R.md, paddingHorizontal: S.lg, paddingVertical: S.md, marginTop: S.sm },
+  adminEntryText: { flex: 1, color: '#fff', fontSize: F.body, fontWeight: '800' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

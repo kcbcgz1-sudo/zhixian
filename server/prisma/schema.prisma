@@ -39,6 +39,7 @@ model User {
   points       Int           @default(0)
   level        Int           @default(1)
   status       String        @default("active") // active/limited/banned
+  role         String        @default("user")   // user/admin
   posts        Post[]
   interactions Interaction[]
   ledger       PointsLedger[]

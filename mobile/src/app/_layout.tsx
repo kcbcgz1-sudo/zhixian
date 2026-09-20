@@ -16,6 +16,9 @@ export default function RootLayout() {
         <Stack.Screen name="post-new" />
         <Stack.Screen name="login" options={{ presentation: 'modal' }} />
         <Stack.Screen name="register" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="admin" />
+        <Stack.Screen name="admin-posts" />
+        <Stack.Screen name="admin-users" />
       </Stack>
       <BrandSplash />
     </AuthProvider>

@@ -1,9 +1,8 @@
-// 知闲 · API 클라이언트 (+ 인증)
+// 知闲 · API 클라이언트 (+ 인증 + 관리자)
 import type { Category, Post } from './seed';
 
 export const API_BASE = 'https://app.emilano.net/api';
 
-// ── 토큰 보관 (auth 컨텍스트가 설정) ──
 let authToken: string | null = null;
 export function setAuthToken(t: string | null) {
   authToken = t;
@@ -11,16 +10,23 @@ export function setAuthToken(t: string | null) {
 function authHeaders(): Record<string, string> {
   return authToken ? { Authorization: `Bearer ${authToken}` } : {};
 }
+async function authFetch(path: string, opts: RequestInit = {}): Promise<any> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...opts,
+    headers: { ...(opts.headers as any), ...authHeaders() },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const t = await res.text();
+  return t ? JSON.parse(t) : null;
+}
 
 // ── 게시글 ──
 export async function fetchPosts(category: Category | 'all'): Promise<Post[]> {
-  const url =
-    category === 'all' ? `${API_BASE}/posts` : `${API_BASE}/posts?category=${category}`;
+  const url = category === 'all' ? `${API_BASE}/posts` : `${API_BASE}/posts?category=${category}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as Post[];
 }
-
 export async function fetchPost(id: string): Promise<Post> {
   const res = await fetch(`${API_BASE}/posts/${id}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -43,11 +49,7 @@ export async function uploadMedia(asset: {
   } else {
     form.append('file', { uri: asset.uri, name, type } as any);
   }
-  const res = await fetch(`${API_BASE}/uploads`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: form,
-  });
+  const res = await fetch(`${API_BASE}/uploads`, { method: 'POST', headers: authHeaders(), body: form });
   if (!res.ok) throw new Error(`upload ${res.status}`);
   return (await res.json()) as UploadResult;
 }
@@ -81,8 +83,8 @@ export type PublicUser = {
   points: number;
   level: number;
   avatar: string | null;
+  role: string;
 };
-
 async function parseError(res: Response, fallback: string): Promise<string> {
   try {
     const j = await res.json();
@@ -92,7 +94,6 @@ async function parseError(res: Response, fallback: string): Promise<string> {
     return fallback;
   }
 }
-
 export async function authRegister(data: {
   username: string;
   email: string;
@@ -107,7 +108,6 @@ export async function authRegister(data: {
   if (!res.ok) throw new Error(await parseError(res, '注册失败'));
   return res.json();
 }
-
 export async function authLogin(data: {
   account: string;
   password: string;
@@ -120,9 +120,39 @@ export async function authLogin(data: {
   if (!res.ok) throw new Error(await parseError(res, '登录失败'));
   return res.json();
 }
-
 export async function authMe(): Promise<PublicUser> {
   const res = await fetch(`${API_BASE}/auth/me`, { headers: authHeaders() });
   if (!res.ok) throw new Error('unauthorized');
   return res.json();
 }
+
+// ── 관리자 ──
+export type AdminStats = { users: number; posts: number; removed: number; postsToday: number };
+export type AdminPost = {
+  id: string;
+  title: string;
+  category: string;
+  status: string;
+  author: string;
+  cover: string | null;
+  createdAt: string;
+};
+export type AdminUser = {
+  id: string;
+  username: string | null;
+  nickname: string;
+  email: string | null;
+  role: string;
+  status: string;
+  points: number;
+  posts: number;
+  createdAt: string;
+};
+export const adminStats = (): Promise<AdminStats> => authFetch('/admin/stats');
+export const adminPosts = (): Promise<AdminPost[]> => authFetch('/admin/posts');
+export const adminPostRemove = (id: string) => authFetch(`/admin/posts/${id}/remove`, { method: 'POST' });
+export const adminPostRestore = (id: string) => authFetch(`/admin/posts/${id}/restore`, { method: 'POST' });
+export const adminPostDelete = (id: string) => authFetch(`/admin/posts/${id}`, { method: 'DELETE' });
+export const adminUsers = (): Promise<AdminUser[]> => authFetch('/admin/users');
+export const adminUserBan = (id: string) => authFetch(`/admin/users/${id}/ban`, { method: 'POST' });
+export const adminUserUnban = (id: string) => authFetch(`/admin/users/${id}/unban`, { method: 'POST' });
