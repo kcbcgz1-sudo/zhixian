@@ -23,10 +23,14 @@ import { POST_CATEGORIES, type Category } from '@/data/seed';
 
 type Asset = ImagePicker.ImagePickerAsset;
 
+// 광저우 11개 구 (지역 선택)
+const DISTRICTS = ['天河', '越秀', '海珠', '荔湾', '白云', '黄埔', '番禺', '花都', '南沙', '从化', '增城'];
+
 export default function PostNewScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [category, setCategory] = useState<Category>('fishing');
+  const [district, setDistrict] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -69,7 +73,13 @@ export default function PostNewScreen() {
         const r = await uploadMedia({ uri: a.uri, fileName: a.fileName, mimeType: a.mimeType });
         media.push(r);
       }
-      await createPost({ category, title: title.trim(), body: body.trim(), media });
+      await createPost({
+        category,
+        title: title.trim(),
+        body: body.trim(),
+        district: district || undefined,
+        media,
+      });
       setDone(true);
       setTimeout(() => router.replace('/' as any), 1000);
     } catch (e) {
@@ -111,6 +121,21 @@ export default function PostNewScreen() {
                   <Text style={[styles.catText, { color: active ? '#fff' : Brand.text }]}>
                     {c.label}
                   </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Text style={styles.label}>地区（广州）</Text>
+          <View style={styles.distWrap}>
+            {DISTRICTS.map((d) => {
+              const active = d === district;
+              return (
+                <Pressable
+                  key={d}
+                  onPress={() => setDistrict(active ? '' : d)}
+                  style={[styles.dist, active ? styles.distOn : styles.distOff]}>
+                  <Text style={[styles.distText, { color: active ? '#fff' : Brand.text }]}>{d}</Text>
                 </Pressable>
               );
             })}
@@ -206,6 +231,11 @@ const styles = StyleSheet.create({
   catOn: { backgroundColor: Brand.green },
   catOff: { backgroundColor: '#E7EAEC' },
   catText: { fontSize: F.body, fontWeight: '700', lineHeight: 24, includeFontPadding: false, textAlignVertical: 'center' },
+  distWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
+  dist: { paddingHorizontal: S.lg, paddingVertical: 8, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center' },
+  distOn: { backgroundColor: Brand.green },
+  distOff: { backgroundColor: '#E7EAEC' },
+  distText: { fontSize: F.small, fontWeight: '700', lineHeight: 20, includeFontPadding: false, textAlignVertical: 'center' },
   titleInput: {
     borderWidth: 1,
     borderColor: Brand.border,
