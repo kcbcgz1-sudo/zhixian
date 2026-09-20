@@ -42,8 +42,9 @@ export class AuthService {
     if (!token) return null;
     const raw = token.startsWith('Bearer ') ? token.slice(7) : token;
     try {
-      const p = jwt.verify(raw, SECRET) as { sub?: string };
-      return p.sub ?? null;
+      const p = jwt.verify(raw, SECRET);
+      if (typeof p === 'object' && p && 'sub' in p) return String((p as { sub?: unknown }).sub ?? '') || null;
+      return null;
     } catch {
       return null;
     }
