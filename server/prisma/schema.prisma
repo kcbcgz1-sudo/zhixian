@@ -1,0 +1,107 @@
+// 知闲 · Prisma 스키마 (docs/02 데이터모델 기반, MVP)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Category {
+  fishing // 钓鱼
+  hiking  // 登山徒步
+  stay    // 短租/乡居
+}
+
+enum PostStatus {
+  reviewing // 审核中
+  published // 已发布
+  removed   // 已下架
+}
+
+enum InteractionType {
+  like
+  favorite
+  comment
+}
+
+model User {
+  id           String        @id @default(cuid())
+  phone        String?       @unique
+  wechatId     String?       @unique
+  nickname     String
+  avatar       String?
+  city         String        @default("广州")
+  points       Int           @default(0)
+  level        Int           @default(1)
+  status       String        @default("active") // active/limited/banned
+  posts        Post[]
+  interactions Interaction[]
+  ledger       PointsLedger[]
+  createdAt    DateTime      @default(now())
+}
+
+model Post {
+  id           String        @id @default(cuid())
+  author       User          @relation(fields: [authorId], references: [id])
+  authorId     String
+  category     Category
+  title        String
+  body         String
+  district     String?
+  locationPoi  String?
+  attributes   Json          @default("{}") // 垂类 전용 필드 + 표시용(tags/authorTitle/aiImage 등)
+  warnTips     String?
+  isQuality    Boolean       @default(false)
+  qualityScore Int           @default(0)
+  trustScore   Float         @default(0)
+  status       PostStatus    @default(published)
+  images       PostImage[]
+  interactions Interaction[]
+  createdAt    DateTime      @default(now())
+  publishedAt  DateTime?
+
+  @@index([category, status])
+}
+
+model PostImage {
+  id     String @id @default(cuid())
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String
+  url    String
+  sort   Int    @default(0)
+}
+
+model Interaction {
+  id        String          @id @default(cuid())
+  post      Post            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  user      User            @relation(fields: [userId], references: [id])
+  userId    String
+  type      InteractionType
+  content   String? // 评论 내용
+  createdAt DateTime        @default(now())
+
+  @@index([postId, type])
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  postId     String
+  reporterId String
+  reason     String
+  status     String   @default("pending") // pending/valid/rejected
+  createdAt  DateTime @default(now())
+}
+
+model PointsLedger {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
+  change       Int
+  reason       String
+  refId        String?
+  balanceAfter Int
+  createdAt    DateTime @default(now())
+}
