@@ -1,22 +1,45 @@
-// 知闲 · 情报流(홈) — 피그마 1번 화면
+// 知闲 · 情报流(홈) — 서버 API 연동판
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
-import { FILTERS, POSTS, type Category, type Post } from '@/data/seed';
+import { fetchPosts } from '@/data/api';
+import { FILTERS, type Category, type Post } from '@/data/seed';
 
 export default function HomeScreen() {
   const router = useRouter();
   const [filter, setFilter] = useState<Category | 'all'>('all');
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const posts = useMemo(
-    () => (filter === 'all' ? POSTS : POSTS.filter((p) => p.category === filter)),
-    [filter]
-  );
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setPosts(await fetchPosts(filter));
+    } catch (e) {
+      setError('加载失败，请检查网络后重试');
+    } finally {
+      setLoading(false);
+    }
+  }, [filter]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return (
     <View style={styles.container}>
@@ -64,17 +87,33 @@ export default function HomeScreen() {
         </View>
 
         {/* 피드 */}
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}>
-          {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onPress={() => router.push({ pathname: '/post/[id]', params: { id: post.id } })}
-            />
-          ))}
-        </ScrollView>
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={Brand.green} size="large" />
+          </View>
+        ) : error ? (
+          <View style={styles.center}>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable style={styles.retryBtn} onPress={load}>
+              <Text style={styles.retryText}>重试</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}>
+            {posts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                onPress={() => router.push({ pathname: '/post/[id]', params: { id: post.id } })}
+              />
+            ))}
+            {posts.length === 0 && (
+              <Text style={styles.empty}>暂无内容，来发布第一条干货吧</Text>
+            )}
+          </ScrollView>
+        )}
       </SafeAreaView>
     </View>
   );
@@ -83,7 +122,6 @@ export default function HomeScreen() {
 function PostCard({ post, onPress }: { post: Post; onPress: () => void }) {
   return (
     <Pressable style={styles.card} onPress={onPress}>
-      {/* 실사진 자리(그린 톤 플레이스홀더) */}
       <LinearGradient colors={['#CDEBD6', '#A9DCBB']} style={styles.thumb}>
         <Ionicons name="image-outline" size={26} color="#5FA277" />
       </LinearGradient>
@@ -92,16 +130,13 @@ function PostCard({ post, onPress }: { post: Post; onPress: () => void }) {
         <Text style={styles.cardTitle} numberOfLines={2}>
           {post.title}
         </Text>
-
         <Text style={styles.tags} numberOfLines={1}>
           {post.tags.join('   ')}
         </Text>
-
         <Text style={styles.author} numberOfLines={1}>
           {post.district} · {post.author}
           <Text style={styles.authorTitle}>{`  「${post.authorTitle}」`}</Text>
         </Text>
-
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
             <Ionicons name="chatbubble-outline" size={16} color={Brand.textSub} />
@@ -156,6 +191,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: S.md },
+  errorText: { fontSize: F.body, color: Brand.textSub },
+  retryBtn: {
+    paddingHorizontal: S.xl,
+    paddingVertical: S.sm,
+    backgroundColor: Brand.green,
+    borderRadius: R.pill,
+  },
+  retryText: { color: '#fff', fontSize: F.body, fontWeight: '700' },
+
   listContent: { paddingTop: S.lg, paddingBottom: 100, gap: S.md },
   card: {
     flexDirection: 'row',
@@ -184,4 +229,5 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: S.lg, marginTop: 6 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { fontSize: F.tiny, color: Brand.textSub, fontWeight: '600' },
+  empty: { textAlign: 'center', color: Brand.textSub, marginTop: S.xxl },
 });
