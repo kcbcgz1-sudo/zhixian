@@ -1,8 +1,7 @@
 // 知闲 · 发布(발행 선택) — 모달
-// 정책: 主입구는 강제 구조화 발제, 보조로 随手记(사진+한줄, 干货/적립 제외).
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
@@ -20,8 +19,10 @@ export default function PublishScreen() {
         </View>
 
         <View style={styles.options}>
-          {/* 구조화 발제(메인) */}
-          <Pressable style={[styles.card, styles.cardPrimary]}>
+          {/* 구조화 발제(메인) → 글쓰기 폼 */}
+          <Pressable
+            style={[styles.card, styles.cardPrimary]}
+            onPress={() => router.replace('/post-new' as any)}>
             <View style={styles.cardIcon}>
               <Ionicons name="document-text-outline" size={28} color="#fff" />
             </View>
@@ -37,8 +38,8 @@ export default function PublishScreen() {
             <Ionicons name="chevron-forward" size={22} color={Brand.textFaint} />
           </Pressable>
 
-          {/* 随手记(경량) */}
-          <Pressable style={styles.card}>
+          {/* 随手记(경량) — 추후 */}
+          <Pressable style={styles.card} onPress={() => Alert.alert('随手记', '即将上线')}>
             <View style={[styles.cardIcon, { backgroundColor: Brand.textFaint }]}>
               <Ionicons name="camera-outline" size={28} color="#fff" />
             </View>

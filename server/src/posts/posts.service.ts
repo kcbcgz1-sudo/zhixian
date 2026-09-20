@@ -1,67 +1,97 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Category, PostStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-// 앱(RN)이 기대하는 응답 형태
-export type PostDto = {
-  id: string;
+export type MediaItem = { url: string; type: string };
+export type CreatePostDto = {
   category: string;
   title: string;
-  district: string | null;
-  tags: string[];
-  author: string;
-  authorTitle: string;
-  comments: number;
-  likes: string;
-  date: string;
   body: string;
-  aiImage: boolean;
+  district?: string;
+  tags?: string[];
+  media?: MediaItem[];
 };
+
+const CATEGORIES = ['fishing', 'hiking', 'stay'];
 
 @Injectable()
 export class PostsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // 목록: 垂类 필터 + 可信度(trustScore) 내림차순
-  async findAll(category?: string): Promise<PostDto[]> {
+  async findAll(category?: string) {
     const isCat = category && category !== 'all';
     const posts = await this.prisma.post.findMany({
-      where: {
-        status: PostStatus.published,
-        ...(isCat ? { category: category as Category } : {}),
-      },
-      orderBy: { trustScore: 'desc' },
+      where: { status: PostStatus.published, ...(isCat ? { category: category as Category } : {}) },
+      orderBy: [{ trustScore: 'desc' }, { createdAt: 'desc' }],
       include: { author: true },
     });
     return posts.map((p) => this.shape(p));
   }
 
-  // 상세
-  async findOne(id: string): Promise<PostDto> {
-    const post = await this.prisma.post.findUnique({
-      where: { id },
-      include: { author: true },
-    });
+  async findOne(id: string) {
+    const post = await this.prisma.post.findUnique({ where: { id }, include: { author: true } });
     if (!post) throw new NotFoundException('post not found');
     return this.shape(post);
   }
 
-  private shape(p: any): PostDto {
-    const attrs = (p.attributes ?? {}) as Record<string, any>;
+  async create(dto: CreatePostDto) {
+    const cat = String(dto.category);
+    if (!CATEGORIES.includes(cat)) throw new BadRequestException('bad category');
+    if (!dto.title?.trim() || !dto.body?.trim())
+      throw new BadRequestException('title/body required');
+
+    // 로그인 전이라 임시 작성자('我') 사용. 로그인 붙으면 교체.
+    const author =
+      (await this.prisma.user.findFirst({ where: { nickname: '我' } })) ??
+      (await this.prisma.user.create({ data: { nickname: '我', city: '广州' } }));
+
+    const media = Array.isArray(dto.media) ? dto.media : [];
+    const cover = media.find((m) => m.type === 'image')?.url ?? media[0]?.url ?? null;
+
+    const post = await this.prisma.post.create({
+      data: {
+        authorId: author.id,
+        category: cat as Category,
+        title: dto.title.trim(),
+        body: dto.body.trim(),
+        district: dto.district?.trim() || null,
+        attributes: {
+          tags: Array.isArray(dto.tags) ? dto.tags : [],
+          media,
+          cover,
+          authorTitle: '新人',
+          aiImage: false,
+        },
+        isQuality: media.length > 0,
+        qualityScore: media.length > 0 ? 30 : 0,
+        trustScore: 100, // 새 글이 상단에 보이도록
+        status: PostStatus.published,
+        publishedAt: new Date(),
+      },
+      include: { author: true },
+    });
+    return this.shape(post);
+  }
+
+  private shape(p: any) {
+    const a = (p.attributes ?? {}) as Record<string, any>;
     const d: Date = p.publishedAt ?? p.createdAt;
+    const media: MediaItem[] = Array.isArray(a.media) ? a.media : [];
     return {
       id: p.id,
       category: p.category,
       title: p.title,
       district: p.district ?? null,
-      tags: Array.isArray(attrs.tags) ? attrs.tags : [],
+      tags: Array.isArray(a.tags) ? a.tags : [],
       author: p.author?.nickname ?? '',
-      authorTitle: attrs.authorTitle ?? '',
-      comments: typeof attrs.comments === 'number' ? attrs.comments : 0,
-      likes: attrs.likes != null ? String(attrs.likes) : '0',
+      authorTitle: a.authorTitle ?? '',
+      comments: typeof a.comments === 'number' ? a.comments : 0,
+      likes: a.likes != null ? String(a.likes) : '0',
       date: d.toISOString().slice(0, 10).replace(/-/g, '.'),
       body: p.body,
-      aiImage: attrs.aiImage === true,
+      aiImage: a.aiImage === true,
+      cover: a.cover ?? media.find((m) => m.type === 'image')?.url ?? null,
+      media,
     };
   }
 }

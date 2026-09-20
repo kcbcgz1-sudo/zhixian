@@ -1,4 +1,4 @@
-// 루트 레이아웃 — Stack(탭 그룹 + 상세 + 발행) + 스플래시 오버레이
+// 루트 레이아웃 — Stack(탭 + 상세 + 발행 + 글쓰기) + 스플래시
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
@@ -12,6 +12,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="post/[id]" />
         <Stack.Screen name="publish" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="post-new" />
       </Stack>
       <BrandSplash />
     </>

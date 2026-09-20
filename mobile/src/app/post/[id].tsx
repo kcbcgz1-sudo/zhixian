@@ -1,7 +1,9 @@
-// 知闲 · 帖子详情 — 서버 API 연동판
+// 知闲 · 帖子详情 — 서버 연동 + 이미지/동영상 표시
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,7 +17,7 @@ export default function PostDetail() {
   const router = useRouter();
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
-  const [liked, setLiked] = useState(true);
+  const [liked, setLiked] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -34,10 +36,16 @@ export default function PostDetail() {
     };
   }, [id]);
 
+  const media = post?.media ?? [];
+  const images = media.filter((m) => m.type === 'image');
+  const videoUri = media.find((m) => m.type === 'video')?.url ?? null;
+  const player = useVideoPlayer(videoUri, (p: any) => {
+    p.loop = false;
+  });
+
   return (
     <View style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.flex}>
-        {/* 상단 바 */}
         <View style={styles.topBar}>
           <Pressable onPress={() => router.back()} hitSlop={10}>
             <Ionicons name="arrow-back" size={26} color={Brand.text} />
@@ -54,21 +62,32 @@ export default function PostDetail() {
         ) : (
           <>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-              <LinearGradient colors={['#CDEBD6', '#9FD7B4']} style={styles.hero}>
-                <Ionicons name="image-outline" size={40} color="#5FA277" />
-                {post?.aiImage && (
-                  <View style={styles.aiTag}>
-                    <Text style={styles.aiTagText}>AI生成</Text>
-                  </View>
-                )}
-              </LinearGradient>
+              {/* 미디어 */}
+              {videoUri ? (
+                <VideoView player={player} style={styles.hero} contentFit="cover" nativeControls />
+              ) : images.length > 0 ? (
+                <Image source={{ uri: images[0].url }} style={styles.hero} contentFit="cover" />
+              ) : (
+                <LinearGradient colors={['#CDEBD6', '#9FD7B4']} style={styles.hero}>
+                  <Ionicons name="image-outline" size={40} color="#5FA277" />
+                  {post?.aiImage && (
+                    <View style={styles.aiTag}>
+                      <Text style={styles.aiTagText}>AI生成</Text>
+                    </View>
+                  )}
+                </LinearGradient>
+              )}
+
+              {/* 추가 이미지 */}
+              {images.slice(videoUri ? 0 : 1).map((img, i) => (
+                <Image key={i} source={{ uri: img.url }} style={styles.subImg} contentFit="cover" />
+              ))}
 
               <Text style={styles.title}>{post?.title ?? '内容不存在'}</Text>
-              {post?.date && <Text style={styles.date}>{post.date}</Text>}
-              {post?.body && <Text style={styles.body}>{post.body}</Text>}
+              {post?.date ? <Text style={styles.date}>{post.date}</Text> : null}
+              {post?.body ? <Text style={styles.body}>{post.body}</Text> : null}
             </ScrollView>
 
-            {/* 하단 액션 바 */}
             <View style={styles.actions}>
               <Pressable hitSlop={8}>
                 <Ionicons name="ban-outline" size={26} color={Brand.textSub} />
@@ -106,12 +125,15 @@ const styles = StyleSheet.create({
   },
   content: { paddingHorizontal: S.lg, paddingBottom: S.xl },
   hero: {
+    width: '100%',
     height: 300,
     borderRadius: R.md,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    backgroundColor: '#000',
   },
+  subImg: { width: '100%', height: 240, borderRadius: R.md, marginTop: S.md, backgroundColor: Brand.bg },
   aiTag: {
     position: 'absolute',
     right: S.sm,

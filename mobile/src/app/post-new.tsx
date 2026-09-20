@@ -1,0 +1,239 @@
+// 知闲 · 结构化发布(글쓰기) 화면 — 제목/내용 + 이미지·동영상 업로드
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { Brand, F, R, S } from '@/constants/brand';
+import { createPost, uploadMedia } from '@/data/api';
+import { POST_CATEGORIES, type Category } from '@/data/seed';
+
+type Asset = ImagePicker.ImagePickerAsset;
+
+export default function PostNewScreen() {
+  const router = useRouter();
+  const [category, setCategory] = useState<Category>('fishing');
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function pick() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('需要相册权限', '请在系统设置中允许访问相册');
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images', 'videos'],
+      allowsMultipleSelection: true,
+      quality: 0.8,
+      videoMaxDuration: 120,
+    });
+    if (!res.canceled) setAssets((prev) => [...prev, ...res.assets].slice(0, 9));
+  }
+
+  function removeAsset(i: number) {
+    setAssets((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  async function submit() {
+    if (!title.trim() || !body.trim()) {
+      Alert.alert('提示', '请填写标题和内容');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const media = [];
+      for (const a of assets) {
+        const r = await uploadMedia({ uri: a.uri, fileName: a.fileName, mimeType: a.mimeType });
+        media.push(r);
+      }
+      await createPost({ category, title: title.trim(), body: body.trim(), media });
+      router.back(); // 홈으로 (홈은 포커스 시 새로고침)
+    } catch (e) {
+      Alert.alert('发布失败', '请检查网络后重试');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <View style={styles.container}>
+      <SafeAreaView edges={['top']} style={styles.flex}>
+        {/* 상단 바 */}
+        <View style={styles.bar}>
+          <Pressable onPress={() => router.back()} hitSlop={10}>
+            <Ionicons name="close" size={26} color={Brand.text} />
+          </Pressable>
+          <Text style={styles.barTitle}>结构化发布</Text>
+          <Pressable
+            onPress={submit}
+            disabled={submitting}
+            style={[styles.submitBtn, submitting && { opacity: 0.6 }]}>
+            {submitting ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.submitText}>发布</Text>
+            )}
+          </Pressable>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {/* 카테고리 */}
+          <Text style={styles.label}>类型</Text>
+          <View style={styles.catRow}>
+            {POST_CATEGORIES.map((c) => {
+              const active = c.key === category;
+              return (
+                <Pressable
+                  key={c.key}
+                  onPress={() => setCategory(c.key)}
+                  style={[styles.cat, active ? styles.catOn : styles.catOff]}>
+                  <Text style={[styles.catText, { color: active ? '#fff' : Brand.text }]}>
+                    {c.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* 제목 */}
+          <Text style={styles.label}>标题</Text>
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="例：白云山摩星岭轻松线，8km缓坡"
+            placeholderTextColor={Brand.textFaint}
+            style={styles.titleInput}
+            maxLength={40}
+          />
+
+          {/* 내용 */}
+          <Text style={styles.label}>内容</Text>
+          <TextInput
+            value={body}
+            onChangeText={setBody}
+            placeholder="写下真实实测：路况、收费、停车、避坑提醒…"
+            placeholderTextColor={Brand.textFaint}
+            style={styles.bodyInput}
+            multiline
+            textAlignVertical="top"
+          />
+
+          {/* 미디어 */}
+          <Text style={styles.label}>图片 / 视频</Text>
+          <View style={styles.mediaWrap}>
+            {assets.map((a, i) => (
+              <View key={i} style={styles.thumb}>
+                {a.type === 'video' ? (
+                  <View style={[styles.thumbImg, styles.videoThumb]}>
+                    <Ionicons name="play-circle" size={30} color="#fff" />
+                    <Text style={styles.videoLabel}>视频</Text>
+                  </View>
+                ) : (
+                  <Image source={{ uri: a.uri }} style={styles.thumbImg} contentFit="cover" />
+                )}
+                <Pressable style={styles.remove} onPress={() => removeAsset(i)} hitSlop={6}>
+                  <Ionicons name="close-circle" size={22} color="#333" />
+                </Pressable>
+              </View>
+            ))}
+            {assets.length < 9 && (
+              <Pressable style={styles.addBtn} onPress={pick}>
+                <Ionicons name="camera-outline" size={26} color={Brand.textSub} />
+                <Text style={styles.addText}>添加</Text>
+              </Pressable>
+            )}
+          </View>
+          <Text style={styles.hint}>真实实拍更容易被评为「干货」、赚积分、上首页。</Text>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Brand.card },
+  flex: { flex: 1 },
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: S.lg,
+    paddingVertical: S.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Brand.border,
+  },
+  barTitle: { fontSize: F.h2, fontWeight: '800', color: Brand.text },
+  submitBtn: {
+    backgroundColor: Brand.green,
+    paddingHorizontal: S.lg,
+    paddingVertical: S.sm,
+    borderRadius: R.pill,
+    minWidth: 64,
+    alignItems: 'center',
+  },
+  submitText: { color: '#fff', fontSize: F.body, fontWeight: '700' },
+
+  content: { padding: S.lg, gap: S.sm, paddingBottom: S.xxl },
+  label: { fontSize: F.sub, fontWeight: '700', color: Brand.text, marginTop: S.md },
+
+  catRow: { flexDirection: 'row', gap: S.sm },
+  cat: { paddingHorizontal: S.xl, paddingVertical: S.sm, borderRadius: R.pill },
+  catOn: { backgroundColor: Brand.green },
+  catOff: { backgroundColor: '#E7EAEC' },
+  catText: { fontSize: F.body, fontWeight: '700' },
+
+  titleInput: {
+    borderWidth: 1,
+    borderColor: Brand.border,
+    borderRadius: R.md,
+    paddingHorizontal: S.lg,
+    height: 52,
+    fontSize: F.body,
+    color: Brand.text,
+  },
+  bodyInput: {
+    borderWidth: 1,
+    borderColor: Brand.border,
+    borderRadius: R.md,
+    padding: S.lg,
+    minHeight: 140,
+    fontSize: F.body,
+    color: Brand.text,
+    lineHeight: 24,
+  },
+
+  mediaWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
+  thumb: { width: 100, height: 100 },
+  thumbImg: { width: 100, height: 100, borderRadius: R.md, backgroundColor: Brand.bg },
+  videoThumb: { backgroundColor: '#3A3D42', alignItems: 'center', justifyContent: 'center' },
+  videoLabel: { color: '#fff', fontSize: F.tiny, marginTop: 2 },
+  remove: { position: 'absolute', top: -6, right: -6, backgroundColor: '#fff', borderRadius: 999 },
+  addBtn: {
+    width: 100,
+    height: 100,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: Brand.border,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  addText: { fontSize: F.small, color: Brand.textSub },
+  hint: { fontSize: F.small, color: Brand.textSub, marginTop: S.sm },
+});

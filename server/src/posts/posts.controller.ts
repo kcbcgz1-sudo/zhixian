@@ -1,7 +1,7 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
-import { PostsService } from './posts.service.js';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { PostsService, type CreatePostDto } from './posts.service.js';
 
-// 라우트: GET /api/posts , GET /api/posts/:id
+// GET /api/posts , GET /api/posts/:id , POST /api/posts
 @Controller('posts')
 export class PostsController {
   constructor(private readonly posts: PostsService) {}
@@ -14,5 +14,10 @@ export class PostsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.posts.findOne(id);
+  }
+
+  @Post()
+  create(@Body() dto: CreatePostDto) {
+    return this.posts.create(dto);
   }
 }

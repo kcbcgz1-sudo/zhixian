@@ -1,8 +1,9 @@
-// 知闲 · 情报流(홈) — 서버 API 연동판
+// 知闲 · 情报流(홈) — 서버 API 연동 + 커버 이미지 + 포커스 새로고침
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -30,27 +31,28 @@ export default function HomeScreen() {
     setError(null);
     try {
       setPosts(await fetchPosts(filter));
-    } catch (e) {
+    } catch {
       setError('加载失败，请检查网络后重试');
     } finally {
       setLoading(false);
     }
   }, [filter]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // 화면에 들어올 때마다(글 작성 후 복귀 포함) 새로고침
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   return (
     <View style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.safe}>
-        {/* 위치 */}
         <View style={styles.locationRow}>
           <Ionicons name="location-outline" size={16} color={Brand.textSub} />
           <Text style={styles.location}>广州</Text>
         </View>
 
-        {/* 필터 칩 */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -71,7 +73,6 @@ export default function HomeScreen() {
           })}
         </ScrollView>
 
-        {/* 검색 + 필터 버튼 */}
         <View style={styles.searchRow}>
           <View style={styles.searchBox}>
             <Ionicons name="search" size={20} color={Brand.textSub} />
@@ -86,7 +87,6 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* 피드 */}
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={Brand.green} size="large" />
@@ -99,9 +99,7 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         ) : (
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
             {posts.map((post) => (
               <PostCard
                 key={post.id}
@@ -109,9 +107,7 @@ export default function HomeScreen() {
                 onPress={() => router.push({ pathname: '/post/[id]', params: { id: post.id } })}
               />
             ))}
-            {posts.length === 0 && (
-              <Text style={styles.empty}>暂无内容，来发布第一条干货吧</Text>
-            )}
+            {posts.length === 0 && <Text style={styles.empty}>暂无内容，来发布第一条干货吧</Text>}
           </ScrollView>
         )}
       </SafeAreaView>
@@ -122,20 +118,27 @@ export default function HomeScreen() {
 function PostCard({ post, onPress }: { post: Post; onPress: () => void }) {
   return (
     <Pressable style={styles.card} onPress={onPress}>
-      <LinearGradient colors={['#CDEBD6', '#A9DCBB']} style={styles.thumb}>
-        <Ionicons name="image-outline" size={26} color="#5FA277" />
-      </LinearGradient>
+      {post.cover ? (
+        <Image source={{ uri: post.cover }} style={styles.thumb} contentFit="cover" />
+      ) : (
+        <LinearGradient colors={['#CDEBD6', '#A9DCBB']} style={styles.thumb}>
+          <Ionicons name="image-outline" size={26} color="#5FA277" />
+        </LinearGradient>
+      )}
 
       <View style={styles.cardBody}>
         <Text style={styles.cardTitle} numberOfLines={2}>
           {post.title}
         </Text>
-        <Text style={styles.tags} numberOfLines={1}>
-          {post.tags.join('   ')}
-        </Text>
+        {post.tags.length > 0 && (
+          <Text style={styles.tags} numberOfLines={1}>
+            {post.tags.join('   ')}
+          </Text>
+        )}
         <Text style={styles.author} numberOfLines={1}>
-          {post.district} · {post.author}
-          <Text style={styles.authorTitle}>{`  「${post.authorTitle}」`}</Text>
+          {post.district ? `${post.district} · ` : ''}
+          {post.author}
+          {post.authorTitle ? <Text style={styles.authorTitle}>{`  「${post.authorTitle}」`}</Text> : null}
         </Text>
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
@@ -157,14 +160,12 @@ const styles = StyleSheet.create({
   safe: { flex: 1, paddingHorizontal: S.lg },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: S.sm },
   location: { fontSize: F.sub, color: Brand.textSub, fontWeight: '600' },
-
   chipsRow: { marginTop: S.md, flexGrow: 0 },
   chipsContent: { gap: S.sm, paddingRight: S.lg },
   chip: { paddingHorizontal: S.xl, paddingVertical: S.sm, borderRadius: R.pill },
   chipActive: { backgroundColor: Brand.green },
   chipIdle: { backgroundColor: '#E7EAEC' },
   chipText: { fontSize: F.body, fontWeight: '700' },
-
   searchRow: { flexDirection: 'row', gap: S.md, marginTop: S.md },
   searchBox: {
     flex: 1,
@@ -190,17 +191,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: S.md },
   errorText: { fontSize: F.body, color: Brand.textSub },
-  retryBtn: {
-    paddingHorizontal: S.xl,
-    paddingVertical: S.sm,
-    backgroundColor: Brand.green,
-    borderRadius: R.pill,
-  },
+  retryBtn: { paddingHorizontal: S.xl, paddingVertical: S.sm, backgroundColor: Brand.green, borderRadius: R.pill },
   retryText: { color: '#fff', fontSize: F.body, fontWeight: '700' },
-
   listContent: { paddingTop: S.lg, paddingBottom: 100, gap: S.md },
   card: {
     flexDirection: 'row',
@@ -214,13 +208,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
-  thumb: {
-    width: 104,
-    height: 104,
-    borderRadius: R.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  thumb: { width: 104, height: 104, borderRadius: R.md, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.bg },
   cardBody: { flex: 1, justifyContent: 'space-between' },
   cardTitle: { fontSize: F.body, fontWeight: '800', color: Brand.text, lineHeight: 22 },
   tags: { fontSize: F.tiny, color: Brand.textSub, marginTop: 4 },
