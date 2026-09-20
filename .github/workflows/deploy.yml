@@ -2,6 +2,9 @@ name: deploy
 on:
   push:
     branches: [main]
+    paths:
+      - 'server/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 jobs:
   deploy:
