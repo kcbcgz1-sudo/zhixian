@@ -1,4 +1,4 @@
-// 知闲 · 结构化发布(글쓰기) — 제목/내용 + 이미지·동영상, 발행 후 성공 → 홈
+// 知闲 · 结构化发布(글쓰기) — 로그인 필요 + 제목/내용 + 이미지·동영상, 성공 후 홈
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,12 +18,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
 import { createPost, uploadMedia } from '@/data/api';
+import { useAuth } from '@/data/auth';
 import { POST_CATEGORIES, type Category } from '@/data/seed';
 
 type Asset = ImagePicker.ImagePickerAsset;
 
 export default function PostNewScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [category, setCategory] = useState<Category>('fishing');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -51,6 +53,11 @@ export default function PostNewScreen() {
   }
 
   async function submit() {
+    if (!user) {
+      Alert.alert('请先登录', '发布前需要登录账号');
+      router.push('/login' as any);
+      return;
+    }
     if (!title.trim() || !body.trim()) {
       Alert.alert('提示', '请填写标题和内容');
       return;
@@ -63,7 +70,6 @@ export default function PostNewScreen() {
         media.push(r);
       }
       await createPost({ category, title: title.trim(), body: body.trim(), media });
-      // 성공 → 메시지 표시 후 홈으로
       setDone(true);
       setTimeout(() => router.replace('/' as any), 1000);
     } catch (e) {
@@ -159,7 +165,6 @@ export default function PostNewScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      {/* 발행 성공 오버레이 */}
       {done && (
         <View style={styles.overlay}>
           <View style={styles.successCard}>
@@ -240,7 +245,11 @@ const styles = StyleSheet.create({
   addText: { fontSize: F.small, color: Brand.textSub },
   hint: { fontSize: F.small, color: Brand.textSub, marginTop: S.sm, lineHeight: 18 },
   overlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',

@@ -14,7 +14,6 @@ export type CreatePostDto = {
 
 const CATEGORIES = ['fishing', 'hiking', 'stay'];
 
-// 본문에서 #태그 추출(#포함), 간략설명(태그 제거)
 function extractHashtags(body: string): string[] {
   const m = body.match(/#[^\s#]+/g) ?? [];
   return Array.from(new Set(m));
@@ -44,15 +43,21 @@ export class PostsService {
     return this.shape(post);
   }
 
-  async create(dto: CreatePostDto) {
+  async create(dto: CreatePostDto, authorId?: string | null) {
     const cat = String(dto.category);
     if (!CATEGORIES.includes(cat)) throw new BadRequestException('bad category');
     if (!dto.title?.trim() || !dto.body?.trim())
       throw new BadRequestException('title/body required');
 
-    const author =
-      (await this.prisma.user.findFirst({ where: { nickname: '我' } })) ??
-      (await this.prisma.user.create({ data: { nickname: '我', city: '广州' } }));
+    // 로그인 사용자면 그 계정, 아니면 임시 '我'
+    let author = authorId
+      ? await this.prisma.user.findUnique({ where: { id: authorId } })
+      : null;
+    if (!author) {
+      author =
+        (await this.prisma.user.findFirst({ where: { nickname: '我' } })) ??
+        (await this.prisma.user.create({ data: { nickname: '我', city: '广州' } }));
+    }
 
     const body = dto.body.trim();
     const tags = Array.from(new Set([...(dto.tags ?? []), ...extractHashtags(body)]));

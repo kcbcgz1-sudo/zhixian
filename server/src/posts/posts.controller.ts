@@ -1,10 +1,14 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
+import type { Request } from 'express';
+import { AuthService } from '../auth/auth.service.js';
 import { PostsService, type CreatePostDto } from './posts.service.js';
 
-// GET /api/posts , GET /api/posts/:id , POST /api/posts
 @Controller('posts')
 export class PostsController {
-  constructor(private readonly posts: PostsService) {}
+  constructor(
+    private readonly posts: PostsService,
+    private readonly auth: AuthService,
+  ) {}
 
   @Get()
   findAll(@Query('category') category?: string) {
@@ -17,7 +21,8 @@ export class PostsController {
   }
 
   @Post()
-  create(@Body() dto: CreatePostDto) {
-    return this.posts.create(dto);
+  create(@Body() dto: CreatePostDto, @Req() req: Request) {
+    const uid = this.auth.verifyToken(req.headers['authorization']);
+    return this.posts.create(dto, uid);
   }
 }
