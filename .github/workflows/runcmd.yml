@@ -1,0 +1,34 @@
+name: runcmd
+on:
+  workflow_dispatch:
+    inputs:
+      cmd:
+        description: 'command to run on server'
+        required: true
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ssh run
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          CMD: ${{ github.event.inputs.cmd }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id
+          chmod 600 ~/.ssh/id
+          mkdir -p .ops
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id "$SSH_USER@$SSH_HOST" "$CMD" > .ops/last-output.txt 2>&1 || true
+      - name: commit output
+        run: |
+          git config user.name ci
+          git config user.email ci@local
+          git add .ops/last-output.txt
+          git commit -m "ops: server cmd output" || echo "no change"
+          git pull --rebase --autostash || true
+          git push
