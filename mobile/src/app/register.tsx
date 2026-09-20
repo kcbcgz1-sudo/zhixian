@@ -1,4 +1,4 @@
-// 知闲 · 회원가입 (아이디 + 이메일 + 비번)
+// 知闲 · 회원가입 (아이디+이메일+비번) — 성공 시 환영 오버레이 → 홈
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -18,6 +18,7 @@ export default function RegisterScreen() {
   const [nickname, setNickname] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [welcome, setWelcome] = useState<string | null>(null); // 성공 시 표시할 이름
 
   async function submit() {
     if (!username.trim() || !email.trim() || !password) {
@@ -31,13 +32,14 @@ export default function RegisterScreen() {
     setBusy(true);
     setErr(null);
     try {
+      const name = nickname.trim() || username.trim();
       await register({
         username: username.trim(),
         email: email.trim(),
         password,
         nickname: nickname.trim() || undefined,
       });
-      router.back();
+      setWelcome(name); // 이미 로그인 상태 → 환영 오버레이
     } catch (e: any) {
       setErr(e?.message || '注册失败');
     } finally {
@@ -61,41 +63,17 @@ export default function RegisterScreen() {
 
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>用户名 *</Text>
-        <TextInput
-          value={username}
-          onChangeText={setUsername}
-          placeholder="登录用，字母/数字"
-          placeholderTextColor={Brand.textFaint}
-          autoCapitalize="none"
-          style={styles.input}
-        />
+        <TextInput value={username} onChangeText={setUsername} placeholder="登录用，字母/数字"
+          placeholderTextColor={Brand.textFaint} autoCapitalize="none" style={styles.input} />
         <Text style={styles.label}>邮箱 *</Text>
-        <TextInput
-          value={email}
-          onChangeText={setEmail}
-          placeholder="you@example.com"
-          placeholderTextColor={Brand.textFaint}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          style={styles.input}
-        />
+        <TextInput value={email} onChangeText={setEmail} placeholder="you@example.com"
+          placeholderTextColor={Brand.textFaint} autoCapitalize="none" keyboardType="email-address" style={styles.input} />
         <Text style={styles.label}>密码 * (至少6位)</Text>
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          placeholder="密码"
-          placeholderTextColor={Brand.textFaint}
-          secureTextEntry
-          style={styles.input}
-        />
+        <TextInput value={password} onChangeText={setPassword} placeholder="密码"
+          placeholderTextColor={Brand.textFaint} secureTextEntry style={styles.input} />
         <Text style={styles.label}>昵称 (选填)</Text>
-        <TextInput
-          value={nickname}
-          onChangeText={setNickname}
-          placeholder="显示名称，不填则用用户名"
-          placeholderTextColor={Brand.textFaint}
-          style={styles.input}
-        />
+        <TextInput value={nickname} onChangeText={setNickname} placeholder="显示名称，不填则用用户名"
+          placeholderTextColor={Brand.textFaint} style={styles.input} />
 
         {err ? <Text style={styles.err}>{err}</Text> : null}
 
@@ -108,6 +86,20 @@ export default function RegisterScreen() {
           <Text style={styles.linkStrong}>去登录</Text>
         </Pressable>
       </ScrollView>
+
+      {/* 가입 성공 환영 오버레이 */}
+      {welcome && (
+        <View style={styles.overlay}>
+          <View style={styles.card}>
+            <Ionicons name="checkmark-circle" size={60} color={Brand.green} />
+            <Text style={styles.cardTitle}>注册成功</Text>
+            <Text style={styles.cardMsg}>欢迎，{welcome}！{'\n'}开始分享你的干货吧。</Text>
+            <Pressable style={styles.cardBtn} onPress={() => router.replace('/' as any)}>
+              <Text style={styles.cardBtnText}>开始使用</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -120,26 +112,17 @@ const styles = StyleSheet.create({
   sub: { fontSize: F.sub, color: 'rgba(255,255,255,0.9)', paddingHorizontal: S.lg, marginTop: 4 },
   form: { padding: S.lg, gap: S.sm, paddingBottom: S.xxl },
   label: { fontSize: F.sub, fontWeight: '700', color: Brand.text, marginTop: S.md },
-  input: {
-    borderWidth: 1,
-    borderColor: Brand.border,
-    borderRadius: R.md,
-    paddingHorizontal: S.lg,
-    height: 52,
-    fontSize: F.body,
-    color: Brand.text,
-  },
+  input: { borderWidth: 1, borderColor: Brand.border, borderRadius: R.md, paddingHorizontal: S.lg, height: 52, fontSize: F.body, color: Brand.text },
   err: { color: Brand.danger, fontSize: F.small, marginTop: S.sm },
-  btn: {
-    marginTop: S.lg,
-    backgroundColor: Brand.green,
-    height: 54,
-    borderRadius: R.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  btn: { marginTop: S.lg, backgroundColor: Brand.green, height: 54, borderRadius: R.md, alignItems: 'center', justifyContent: 'center' },
   btnText: { color: '#fff', fontSize: F.h2, fontWeight: '800' },
   linkRow: { flexDirection: 'row', justifyContent: 'center', marginTop: S.lg, gap: 4 },
   linkText: { color: Brand.textSub, fontSize: F.body },
   linkStrong: { color: Brand.green, fontSize: F.body, fontWeight: '700' },
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: S.xl },
+  card: { backgroundColor: '#fff', borderRadius: R.lg, padding: S.xl, alignItems: 'center', gap: S.md, width: '100%', maxWidth: 340 },
+  cardTitle: { fontSize: F.title, fontWeight: '800', color: Brand.text },
+  cardMsg: { fontSize: F.body, color: Brand.textSub, textAlign: 'center', lineHeight: 24 },
+  cardBtn: { marginTop: S.sm, backgroundColor: Brand.green, height: 50, borderRadius: R.md, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
+  cardBtnText: { color: '#fff', fontSize: F.h2, fontWeight: '800' },
 });

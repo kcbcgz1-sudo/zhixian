@@ -26,7 +26,7 @@ export default function LoginScreen() {
     setErr(null);
     try {
       await login(account.trim(), password);
-      router.back();
+      router.replace('/' as any);
     } catch (e: any) {
       setErr(e?.message || '登录失败');
     } finally {
