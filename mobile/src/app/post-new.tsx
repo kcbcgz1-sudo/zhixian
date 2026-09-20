@@ -202,10 +202,10 @@ const styles = StyleSheet.create({
   content: { padding: S.lg, gap: S.sm, paddingBottom: S.xxl },
   label: { fontSize: F.sub, fontWeight: '700', color: Brand.text, marginTop: S.md },
   catRow: { flexDirection: 'row', gap: S.sm },
-  cat: { paddingHorizontal: S.xl, paddingVertical: S.sm, borderRadius: R.pill },
+  cat: { paddingHorizontal: S.xl, paddingVertical: 10, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center' },
   catOn: { backgroundColor: Brand.green },
   catOff: { backgroundColor: '#E7EAEC' },
-  catText: { fontSize: F.body, fontWeight: '700' },
+  catText: { fontSize: F.body, fontWeight: '700', lineHeight: 24, includeFontPadding: false, textAlignVertical: 'center' },
   titleInput: {
     borderWidth: 1,
     borderColor: Brand.border,

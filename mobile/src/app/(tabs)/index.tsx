@@ -166,10 +166,10 @@ const styles = StyleSheet.create({
   location: { fontSize: F.sub, color: Brand.textSub, fontWeight: '600' },
   chipsRow: { marginTop: S.md, flexGrow: 0 },
   chipsContent: { gap: S.sm, paddingRight: S.lg },
-  chip: { paddingHorizontal: S.xl, paddingVertical: S.sm, borderRadius: R.pill },
+  chip: { paddingHorizontal: S.xl, paddingVertical: 10, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center' },
   chipActive: { backgroundColor: Brand.green },
   chipIdle: { backgroundColor: '#E7EAEC' },
-  chipText: { fontSize: F.body, fontWeight: '700' },
+  chipText: { fontSize: F.body, fontWeight: '700', lineHeight: 24, includeFontPadding: false, textAlignVertical: 'center' },
   searchRow: { flexDirection: 'row', gap: S.md, marginTop: S.md },
   searchBox: {
     flex: 1,
