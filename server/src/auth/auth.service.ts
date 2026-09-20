@@ -1,6 +1,10 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
-import * as bcrypt from 'bcryptjs';
-import * as jwt from 'jsonwebtoken';
+import * as bcryptImport from 'bcryptjs';
+import * as jwtImport from 'jsonwebtoken';
+
+// ESM/CJS 인터롭 안전 처리
+const bcrypt: any = (bcryptImport as any).default ?? bcryptImport;
+const jwt: any = (jwtImport as any).default ?? jwtImport;
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const SECRET = process.env.JWT_SECRET || 'zhixian-dev-secret-change-me';
