@@ -14,6 +14,16 @@ export type CreatePostDto = {
 
 const CATEGORIES = ['fishing', 'hiking', 'stay'];
 
+// 본문에서 #태그 추출(#포함), 간략설명(태그 제거)
+function extractHashtags(body: string): string[] {
+  const m = body.match(/#[^\s#]+/g) ?? [];
+  return Array.from(new Set(m));
+}
+function makeExcerpt(body: string): string {
+  const t = body.replace(/#[^\s#]+/g, '').replace(/\s+/g, ' ').trim();
+  return t.length > 60 ? t.slice(0, 60) + '…' : t;
+}
+
 @Injectable()
 export class PostsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -40,11 +50,12 @@ export class PostsService {
     if (!dto.title?.trim() || !dto.body?.trim())
       throw new BadRequestException('title/body required');
 
-    // 로그인 전이라 임시 작성자('我') 사용. 로그인 붙으면 교체.
     const author =
       (await this.prisma.user.findFirst({ where: { nickname: '我' } })) ??
       (await this.prisma.user.create({ data: { nickname: '我', city: '广州' } }));
 
+    const body = dto.body.trim();
+    const tags = Array.from(new Set([...(dto.tags ?? []), ...extractHashtags(body)]));
     const media = Array.isArray(dto.media) ? dto.media : [];
     const cover = media.find((m) => m.type === 'image')?.url ?? media[0]?.url ?? null;
 
@@ -53,18 +64,12 @@ export class PostsService {
         authorId: author.id,
         category: cat as Category,
         title: dto.title.trim(),
-        body: dto.body.trim(),
+        body,
         district: dto.district?.trim() || null,
-        attributes: {
-          tags: Array.isArray(dto.tags) ? dto.tags : [],
-          media,
-          cover,
-          authorTitle: '新人',
-          aiImage: false,
-        },
+        attributes: { tags, media, cover, authorTitle: '新人', aiImage: false },
         isQuality: media.length > 0,
         qualityScore: media.length > 0 ? 30 : 0,
-        trustScore: 100, // 새 글이 상단에 보이도록
+        trustScore: 100,
         status: PostStatus.published,
         publishedAt: new Date(),
       },
@@ -83,6 +88,7 @@ export class PostsService {
       title: p.title,
       district: p.district ?? null,
       tags: Array.isArray(a.tags) ? a.tags : [],
+      excerpt: makeExcerpt(p.body),
       author: p.author?.nickname ?? '',
       authorTitle: a.authorTitle ?? '',
       comments: typeof a.comments === 'number' ? a.comments : 0,

@@ -1,4 +1,4 @@
-// 知闲 · 结构化发布(글쓰기) 화면 — 제목/내용 + 이미지·동영상 업로드
+// 知闲 · 结构化发布(글쓰기) — 제목/내용 + 이미지·동영상, 발행 후 성공 → 홈
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -29,6 +29,7 @@ export default function PostNewScreen() {
   const [body, setBody] = useState('');
   const [assets, setAssets] = useState<Asset[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
 
   async function pick() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -62,18 +63,18 @@ export default function PostNewScreen() {
         media.push(r);
       }
       await createPost({ category, title: title.trim(), body: body.trim(), media });
-      router.back(); // 홈으로 (홈은 포커스 시 새로고침)
+      // 성공 → 메시지 표시 후 홈으로
+      setDone(true);
+      setTimeout(() => router.replace('/' as any), 1000);
     } catch (e) {
-      Alert.alert('发布失败', '请检查网络后重试');
-    } finally {
       setSubmitting(false);
+      Alert.alert('发布失败', '请检查网络后重试');
     }
   }
 
   return (
     <View style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.flex}>
-        {/* 상단 바 */}
         <View style={styles.bar}>
           <Pressable onPress={() => router.back()} hitSlop={10}>
             <Ionicons name="close" size={26} color={Brand.text} />
@@ -92,7 +93,6 @@ export default function PostNewScreen() {
         </View>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          {/* 카테고리 */}
           <Text style={styles.label}>类型</Text>
           <View style={styles.catRow}>
             {POST_CATEGORIES.map((c) => {
@@ -110,7 +110,6 @@ export default function PostNewScreen() {
             })}
           </View>
 
-          {/* 제목 */}
           <Text style={styles.label}>标题</Text>
           <TextInput
             value={title}
@@ -121,19 +120,17 @@ export default function PostNewScreen() {
             maxLength={40}
           />
 
-          {/* 내용 */}
           <Text style={styles.label}>内容</Text>
           <TextInput
             value={body}
             onChangeText={setBody}
-            placeholder="写下真实实测：路况、收费、停车、避坑提醒…"
+            placeholder="写下真实实测：路况、收费、停车、避坑提醒…&#10;用 #标签 添加话题，例如 #白水寨 #秋游"
             placeholderTextColor={Brand.textFaint}
             style={styles.bodyInput}
             multiline
             textAlignVertical="top"
           />
 
-          {/* 미디어 */}
           <Text style={styles.label}>图片 / 视频</Text>
           <View style={styles.mediaWrap}>
             {assets.map((a, i) => (
@@ -158,9 +155,19 @@ export default function PostNewScreen() {
               </Pressable>
             )}
           </View>
-          <Text style={styles.hint}>真实实拍更容易被评为「干货」、赚积分、上首页。</Text>
+          <Text style={styles.hint}>真实实拍更容易被评为「干货」、赚积分、上首页。内容里的 #标签 会显示在列表上。</Text>
         </ScrollView>
       </SafeAreaView>
+
+      {/* 발행 성공 오버레이 */}
+      {done && (
+        <View style={styles.overlay}>
+          <View style={styles.successCard}>
+            <Ionicons name="checkmark-circle" size={56} color={Brand.green} />
+            <Text style={styles.successText}>发布成功</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -187,16 +194,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitText: { color: '#fff', fontSize: F.body, fontWeight: '700' },
-
   content: { padding: S.lg, gap: S.sm, paddingBottom: S.xxl },
   label: { fontSize: F.sub, fontWeight: '700', color: Brand.text, marginTop: S.md },
-
   catRow: { flexDirection: 'row', gap: S.sm },
   cat: { paddingHorizontal: S.xl, paddingVertical: S.sm, borderRadius: R.pill },
   catOn: { backgroundColor: Brand.green },
   catOff: { backgroundColor: '#E7EAEC' },
   catText: { fontSize: F.body, fontWeight: '700' },
-
   titleInput: {
     borderWidth: 1,
     borderColor: Brand.border,
@@ -216,7 +220,6 @@ const styles = StyleSheet.create({
     color: Brand.text,
     lineHeight: 24,
   },
-
   mediaWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
   thumb: { width: 100, height: 100 },
   thumbImg: { width: 100, height: 100, borderRadius: R.md, backgroundColor: Brand.bg },
@@ -235,5 +238,20 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   addText: { fontSize: F.small, color: Brand.textSub },
-  hint: { fontSize: F.small, color: Brand.textSub, marginTop: S.sm },
+  hint: { fontSize: F.small, color: Brand.textSub, marginTop: S.sm, lineHeight: 18 },
+  overlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successCard: {
+    backgroundColor: '#fff',
+    paddingHorizontal: S.xxl,
+    paddingVertical: S.xl,
+    borderRadius: R.lg,
+    alignItems: 'center',
+    gap: S.sm,
+  },
+  successText: { fontSize: F.h2, fontWeight: '800', color: Brand.text },
 });

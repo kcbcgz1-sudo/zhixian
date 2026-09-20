@@ -1,4 +1,4 @@
-// 知闲 · 情报流(홈) — 서버 API 연동 + 커버 이미지 + 포커스 새로고침
+// 知闲 · 情报流(홈) — 커버 이미지 + 간략설명 + 태그 + 포커스 새로고침
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -38,7 +38,6 @@ export default function HomeScreen() {
     }
   }, [filter]);
 
-  // 화면에 들어올 때마다(글 작성 후 복귀 포함) 새로고침
   useFocusEffect(
     useCallback(() => {
       load();
@@ -130,11 +129,16 @@ function PostCard({ post, onPress }: { post: Post; onPress: () => void }) {
         <Text style={styles.cardTitle} numberOfLines={2}>
           {post.title}
         </Text>
-        {post.tags.length > 0 && (
-          <Text style={styles.tags} numberOfLines={1}>
-            {post.tags.join('   ')}
+        {post.excerpt ? (
+          <Text style={styles.excerpt} numberOfLines={2}>
+            {post.excerpt}
           </Text>
-        )}
+        ) : null}
+        {post.tags.length > 0 ? (
+          <Text style={styles.tags} numberOfLines={1}>
+            {post.tags.join('  ')}
+          </Text>
+        ) : null}
         <Text style={styles.author} numberOfLines={1}>
           {post.district ? `${post.district} · ` : ''}
           {post.author}
@@ -209,12 +213,13 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   thumb: { width: 104, height: 104, borderRadius: R.md, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.bg },
-  cardBody: { flex: 1, justifyContent: 'space-between' },
+  cardBody: { flex: 1, gap: 3 },
   cardTitle: { fontSize: F.body, fontWeight: '800', color: Brand.text, lineHeight: 22 },
-  tags: { fontSize: F.tiny, color: Brand.textSub, marginTop: 4 },
-  author: { fontSize: F.tiny, color: Brand.textSub, marginTop: 4 },
+  excerpt: { fontSize: F.small, color: Brand.textSub, lineHeight: 18 },
+  tags: { fontSize: F.tiny, color: Brand.green, fontWeight: '600' },
+  author: { fontSize: F.tiny, color: Brand.textSub, marginTop: 2 },
   authorTitle: { color: Brand.textFaint },
-  metaRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: S.lg, marginTop: 6 },
+  metaRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: S.lg, marginTop: 2 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { fontSize: F.tiny, color: Brand.textSub, fontWeight: '600' },
   empty: { textAlign: 'center', color: Brand.textSub, marginTop: S.xxl },
