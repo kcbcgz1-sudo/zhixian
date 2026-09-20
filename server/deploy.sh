@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 mkdir -p /var/www/zhixian-uploads && chmod 755 /var/www/zhixian-uploads
 echo "[1/5] npm install";      npm install --no-audit --no-fund
 echo "[2/5] prisma generate";  npx prisma generate
-echo "[3/5] db push (schema)"; npx prisma db push
+echo "[3/5] db push (schema)"; npx prisma db push --accept-data-loss
 echo "[4/5] build";            npm run build
 echo "[5/5] restart (pm2)";    pm2 restart zhixian-api || pm2 start dist/main.js --name zhixian-api
 pm2 save
