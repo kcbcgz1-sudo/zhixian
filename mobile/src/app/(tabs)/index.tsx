@@ -52,11 +52,7 @@ export default function HomeScreen() {
           <Text style={styles.location}>广州</Text>
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.chipsRow}
-          contentContainerStyle={styles.chipsContent}>
+        <View style={styles.chipsRow}>
           {FILTERS.map((f) => {
             const active = f.key === filter;
             return (
@@ -70,7 +66,7 @@ export default function HomeScreen() {
               </Pressable>
             );
           })}
-        </ScrollView>
+        </View>
 
         <View style={styles.searchRow}>
           <View style={styles.searchBox}>
@@ -164,8 +160,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, paddingHorizontal: S.lg },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: S.sm },
   location: { fontSize: F.sub, color: Brand.textSub, fontWeight: '600' },
-  chipsRow: { marginTop: S.md, flexGrow: 0, height: 44 },
-  chipsContent: { gap: S.sm, paddingRight: S.lg, height: 44, alignItems: 'center' },
+  chipsRow: { marginTop: S.md, flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
   chip: { paddingHorizontal: S.xl, height: 44, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center' },
   chipActive: { backgroundColor: Brand.green },
   chipIdle: { backgroundColor: '#E7EAEC' },
