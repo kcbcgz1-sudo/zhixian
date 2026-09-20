@@ -1,0 +1,81 @@
+Warning: Permanently added '47.242.176.141' (ED25519) to the list of known hosts.
+0|zhixian- | 🚀 知闲 API on http://localhost:3000/api
+0|zhixian- | [32m[Nest] 13640  - [39m09/20/2026, 7:05:27 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+0|zhixian- | [32m[Nest] 13640  - [39m09/20/2026, 7:05:27 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +23ms[39m
+0|zhixian- | [32m[Nest] 13640  - [39m09/20/2026, 7:05:27 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +2ms[39m
+0|zhixian- | [32m[Nest] 13640  - [39m09/20/2026, 7:05:27 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPostsModule dependencies initialized[39m[38;5;3m +1ms[39m
+0|zhixian- | [32m[Nest] 13640  - [39m09/20/2026, 7:05:27 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api}:[39m[38;5;3m +10ms[39m
+0|zhixian- | [32m[Nest] 13640  - [39m09/20/2026, 7:05:27 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api, GET} route[39m[38;5;3m +5ms[39m
+0|zhixian- | [32m[Nest] 13640  - [39m09/20/2026, 7:05:27 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPostsController {/api/posts}:[39m[38;5;3m +1ms[39m
+0|zhixian- | [32m[Nest] 13640  - [39m09/20/2026, 7:05:27 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/posts, GET} route[39m[38;5;3m +3ms[39m
+0|zhixian- | [32m[Nest] 13640  - [39m09/20/2026, 7:05:27 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/posts/:id, GET} route[39m[38;5;3m +3ms[39m
+0|zhixian- | [32m[Nest] 13640  - [39m09/20/2026, 7:05:28 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +110ms[39m
+0|zhixian- | 🚀 知闲 API on http://localhost:3000/api
+0|zhixian- | [32m[Nest] 13879  - [39m09/20/2026, 7:07:05 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+0|zhixian- | [32m[Nest] 13879  - [39m09/20/2026, 7:07:05 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +22ms[39m
+0|zhixian- | [32m[Nest] 13879  - [39m09/20/2026, 7:07:05 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +1ms[39m
+0|zhixian- | [32m[Nest] 13879  - [39m09/20/2026, 7:07:05 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPostsModule dependencies initialized[39m[38;5;3m +1ms[39m
+0|zhixian- | [32m[Nest] 13879  - [39m09/20/2026, 7:07:05 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api}:[39m[38;5;3m +9ms[39m
+0|zhixian- | [32m[Nest] 13879  - [39m09/20/2026, 7:07:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api, GET} route[39m[38;5;3m +5ms[39m
+0|zhixian- | [32m[Nest] 13879  - [39m09/20/2026, 7:07:05 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPostsController {/api/posts}:[39m[38;5;3m +1ms[39m
+0|zhixian- | [32m[Nest] 13879  - [39m09/20/2026, 7:07:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/posts, GET} route[39m[38;5;3m +2ms[39m
+0|zhixian- | [32m[Nest] 13879  - [39m09/20/2026, 7:07:05 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/posts/:id, GET} route[39m[38;5;3m +2ms[39m
+0|zhixian- | [32m[Nest] 13879  - [39m09/20/2026, 7:07:05 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +110ms[39m
+0|zhixian- | 🚀 知闲 API on http://localhost:3000/api
+0|zhixian- | [32m[Nest] 14566  - [39m09/20/2026, 7:34:30 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+0|zhixian- | [32m[Nest] 14566  - [39m09/20/2026, 7:34:30 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +25ms[39m
+0|zhixian- | [32m[Nest] 14566  - [39m09/20/2026, 7:34:30 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +3ms[39m
+0|zhixian- | [32m[Nest] 14566  - [39m09/20/2026, 7:34:30 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUploadsModule dependencies initialized[39m[38;5;3m +1ms[39m
+0|zhixian- | [32m[Nest] 14566  - [39m09/20/2026, 7:34:30 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPostsModule dependencies initialized[39m[38;5;3m +0ms[39m
+0|zhixian- | [32m[Nest] 14566  - [39m09/20/2026, 7:34:30 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api}:[39m[38;5;3m +11ms[39m
+0|zhixian- | [32m[Nest] 14566  - [39m09/20/2026, 7:34:30 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api, GET} route[39m[38;5;3m +5ms[39m
+0|zhixian- | [32m[Nest] 14566  - [39m09/20/2026, 7:34:30 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPostsController {/api/posts}:[39m[38;5;3m +1ms[39m
+0|zhixian- | [32m[Nest] 14566  - [39m09/20/2026, 7:34:30 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/posts, GET} route[39m[38;5;3m +2ms[39m
+0|zhixian- | [32m[Nest] 14566  - [39m09/20/2026, 7:34:30 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/posts/:id, GET} route[39m[38;5;3m +3ms[39m
+0|zhixian- | [32m[Nest] 14566  - [39m09/20/2026, 7:34:30 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/posts, POST} route[39m[38;5;3m +1ms[39m
+0|zhixian- | [32m[Nest] 14566  - [39m09/20/2026, 7:34:30 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUploadsController {/api/uploads}:[39m[38;5;3m +1ms[39m
+0|zhixian- | [32m[Nest] 14566  - [39m09/20/2026, 7:34:30 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/uploads, POST} route[39m[38;5;3m +3ms[39m
+0|zhixian- | [32m[Nest] 14566  - [39m09/20/2026, 7:34:30 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +107ms[39m
+0|zhixian- | 🚀 知闲 API on http://localhost:3000/api
+0|zhixian- | [32m[Nest] 15142  - [39m09/20/2026, 7:56:00 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+0|zhixian- | [32m[Nest] 15142  - [39m09/20/2026, 7:56:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +24ms[39m
+0|zhixian- | [32m[Nest] 15142  - [39m09/20/2026, 7:56:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +2ms[39m
+0|zhixian- | [32m[Nest] 15142  - [39m09/20/2026, 7:56:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUploadsModule dependencies initialized[39m[38;5;3m +1ms[39m
+0|zhixian- | [32m[Nest] 15142  - [39m09/20/2026, 7:56:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPostsModule dependencies initialized[39m[38;5;3m +0ms[39m
+0|zhixian- | [32m[Nest] 15142  - [39m09/20/2026, 7:56:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api}:[39m[38;5;3m +11ms[39m
+0|zhixian- | [32m[Nest] 15142  - [39m09/20/2026, 7:56:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api, GET} route[39m[38;5;3m +5ms[39m
+0|zhixian- | [32m[Nest] 15142  - [39m09/20/2026, 7:56:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPostsController {/api/posts}:[39m[38;5;3m +0ms[39m
+0|zhixian- | [32m[Nest] 15142  - [39m09/20/2026, 7:56:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/posts, GET} route[39m[38;5;3m +3ms[39m
+0|zhixian- | [32m[Nest] 15142  - [39m09/20/2026, 7:56:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/posts/:id, GET} route[39m[38;5;3m +4ms[39m
+0|zhixian- | [32m[Nest] 15142  - [39m09/20/2026, 7:56:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/posts, POST} route[39m[38;5;3m +1ms[39m
+0|zhixian- | [32m[Nest] 15142  - [39m09/20/2026, 7:56:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUploadsController {/api/uploads}:[39m[38;5;3m +0ms[39m
+0|zhixian- | [32m[Nest] 15142  - [39m09/20/2026, 7:56:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/uploads, POST} route[39m[38;5;3m +3ms[39m
+0|zhixian- | [32m[Nest] 15142  - [39m09/20/2026, 7:56:00 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +112ms[39m
+0|zhixian- | 🚀 知闲 API on http://localhost:3000/api
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +25ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +3ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUploadsModule dependencies initialized[39m[38;5;3m +1ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPostsModule dependencies initialized[39m[38;5;3m +1ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/api}:[39m[38;5;3m +11ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api, GET} route[39m[38;5;3m +5ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/auth}:[39m[38;5;3m +1ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/register, POST} route[39m[38;5;3m +3ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/login, POST} route[39m[38;5;3m +1ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/auth/me, GET} route[39m[38;5;3m +2ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPostsController {/api/posts}:[39m[38;5;3m +0ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/posts, GET} route[39m[38;5;3m +2ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/posts/:id, GET} route[39m[38;5;3m +2ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/posts, POST} route[39m[38;5;3m +2ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUploadsController {/api/uploads}:[39m[38;5;3m +0ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/uploads, POST} route[39m[38;5;3m +2ms[39m
+0|zhixian- | [32m[Nest] 16475  - [39m09/20/2026, 8:42:31 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +104ms[39m
+0|zhixian- | 🚀 知闲 API on http://localhost:3000/api
+
+/root/.pm2/logs/zhixian-api-error.log last 80 lines:
+0|zhixian- | [31m[Nest] 16475  - [39m09/20/2026, 8:45:18 PM [31m  ERROR[39m [38;5;3m[ExceptionsHandler] [39mTypeError: bcrypt.hashSync is not a function
+0|zhixian- |     at AuthService.register [90m(/root/zhixian/server/[39msrc/auth/auth.service.ts:64:30[90m)[39m
+0|zhixian- |     at async [90mfile:///root/zhixian/server/[39mnode_modules/[4m@nestjs/core[24m/router/router-execution-context.js:58:62
+0|zhixian- |     at async [90mfile:///root/zhixian/server/[39mnode_modules/[4m@nestjs/core[24m/router/router-proxy.js:6:17
+
