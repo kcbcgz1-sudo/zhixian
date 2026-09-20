@@ -1,2 +1,2 @@
 Warning: Permanently added '47.242.176.141' (ED25519) to the list of known hosts.
-{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbXU5dGhkbDUwMDAwamQ1N2NyOGcwM2Q0IiwiaWF0IjoxNzg5OTA4Nzk1LCJleHAiOjE3OTI1MDA3OTV9.m21pNHo3k0iyxm44EDpNq5DD76c3eaOX69S-n4Kjmdg","user":{"id":"cmu9thdl50000jd57cr8g03d4","username":"clitest1","email":"clitest1@example.com","nickname":"clitest1","city":"广州","points":0,"level":1,"avatar":null}}
+DONE-3
