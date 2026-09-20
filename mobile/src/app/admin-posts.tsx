@@ -2,7 +2,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
@@ -39,9 +39,15 @@ export default function AdminPostsScreen() {
   }
 
   function confirmDelete(p: AdminPost) {
+    const run = () => act(() => adminPostDelete(p.id));
+    // RN Web에서는 Alert.alert 버튼 콜백이 동작하지 않아 window.confirm 사용
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(`确定删除「${p.title}」？此操作不可恢复。`)) run();
+      return;
+    }
     Alert.alert('删除内容', `确定删除「${p.title}」？不可恢复。`, [
       { text: '取消', style: 'cancel' },
-      { text: '删除', style: 'destructive', onPress: () => act(() => adminPostDelete(p.id)) },
+      { text: '删除', style: 'destructive', onPress: run },
     ]);
   }
 
