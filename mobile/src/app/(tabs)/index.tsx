@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: S.sm },
   location: { fontSize: F.sub, color: Brand.textSub, fontWeight: '600' },
   chipsRow: { marginTop: S.md, flexGrow: 0, height: 44 },
-  chipsContent: { gap: S.sm, paddingRight: S.lg },
+  chipsContent: { gap: S.sm, paddingRight: S.lg, height: 44, alignItems: 'center' },
   chip: { paddingHorizontal: S.xl, height: 44, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center' },
   chipActive: { backgroundColor: Brand.green },
   chipIdle: { backgroundColor: '#E7EAEC' },
