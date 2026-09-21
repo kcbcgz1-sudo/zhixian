@@ -6,6 +6,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -18,11 +19,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
 import { injectThinBar } from '@/constants/thinbar';
-import { fetchCategories, fetchPosts } from '@/data/api';
+import { deletePost, fetchCategories, fetchPosts } from '@/data/api';
+import { useAuth } from '@/data/auth';
 import { type Category, type Post } from '@/data/seed';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [filter, setFilter] = useState<Category | 'all'>('all');
   const [filters, setFilters] = useState<{ key: string; label: string }[]>([
     { key: 'all', label: '全部' },
@@ -57,6 +60,25 @@ export default function HomeScreen() {
       load();
     }, [load]),
   );
+
+  function confirmDeletePost(post: Post) {
+    const run = async () => {
+      try {
+        await deletePost(post.id);
+        await load();
+      } catch (e: any) {
+        Alert.alert('删除失败', String(e?.message ?? '请重试'));
+      }
+    };
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(`确定删除「${post.title}」？`)) run();
+      return;
+    }
+    Alert.alert('删除内容', `确定删除「${post.title}」？`, [
+      { text: '取消', style: 'cancel' },
+      { text: '删除', style: 'destructive', onPress: run },
+    ]);
+  }
 
   return (
     <View style={styles.container}>
@@ -119,6 +141,8 @@ export default function HomeScreen() {
               <PostCard
                 key={post.id}
                 post={post}
+                canDelete={!!user && (user.role === 'admin' || !!post.mine)}
+                onDelete={() => confirmDeletePost(post)}
                 onPress={() => router.push({ pathname: '/post/[id]', params: { id: post.id } })}
               />
             ))}
@@ -130,9 +154,24 @@ export default function HomeScreen() {
   );
 }
 
-function PostCard({ post, onPress }: { post: Post; onPress: () => void }) {
+function PostCard({
+  post,
+  onPress,
+  canDelete,
+  onDelete,
+}: {
+  post: Post;
+  onPress: () => void;
+  canDelete?: boolean;
+  onDelete?: () => void;
+}) {
   return (
     <Pressable style={styles.card} onPress={onPress}>
+      {canDelete && (
+        <Pressable style={styles.cardDel} onPress={onDelete} hitSlop={8}>
+          <Ionicons name="trash-outline" size={18} color={Brand.danger} />
+        </Pressable>
+      )}
       {post.cover ? (
         <Image source={{ uri: post.cover }} style={styles.thumb} contentFit="cover" />
       ) : (
@@ -231,6 +270,18 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
+  },
+  cardDel: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    zIndex: 2,
+    width: 30,
+    height: 30,
+    borderRadius: 999,
+    backgroundColor: '#FBE9E7',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   thumb: { width: 104, height: 104, borderRadius: R.md, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.bg },
   cardBody: { flex: 1, gap: 3 },

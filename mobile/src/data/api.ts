@@ -102,11 +102,38 @@ export type Comment = {
   author: string;
   authorLevel: number;
   date: string;
+  mine?: boolean;
 };
 export async function fetchComments(postId: string): Promise<Comment[]> {
-  const res = await fetch(`${API_BASE}/posts/${postId}/comments`);
+  const res = await fetch(`${API_BASE}/posts/${postId}/comments`, { headers: { ...authHeaders() } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as Comment[];
+}
+export async function deleteComment(postId: string, commentId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/posts/${postId}/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: { ...authHeaders() },
+  });
+  if (!res.ok) throw new Error(await parseError(res, '删除失败'));
+}
+
+// ── 내 글 / 내 수집 / 삭제 ──
+export async function fetchMyPosts(): Promise<Post[]> {
+  const res = await fetch(`${API_BASE}/posts/mine`, { headers: { ...authHeaders() } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as Post[];
+}
+export async function fetchMyFavorites(): Promise<Post[]> {
+  const res = await fetch(`${API_BASE}/posts/favorites`, { headers: { ...authHeaders() } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as Post[];
+}
+export async function deletePost(postId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/posts/${postId}`, {
+    method: 'DELETE',
+    headers: { ...authHeaders() },
+  });
+  if (!res.ok) throw new Error(await parseError(res, '删除失败'));
 }
 export async function createComment(postId: string, content: string): Promise<Comment> {
   const res = await fetch(`${API_BASE}/posts/${postId}/comments`, {
@@ -147,6 +174,7 @@ export type PublicUser = {
   city: string;
   points: number;
   level: number;
+  title: string;
   avatar: string | null;
   role: string;
 };

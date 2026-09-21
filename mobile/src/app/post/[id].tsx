@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,6 +21,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Brand, F, R, S } from '@/constants/brand';
 import {
   createComment,
+  deleteComment,
+  deletePost,
   fetchCategories,
   fetchComments,
   fetchPost,
@@ -136,6 +139,47 @@ export default function PostDetail() {
     }
   }
 
+  const isAdmin = user?.role === 'admin';
+  const canDeletePost = !!post && (post.mine || isAdmin);
+
+  function onDeletePost() {
+    const run = async () => {
+      try {
+        await deletePost(id ?? '');
+        router.back();
+      } catch (e: any) {
+        Alert.alert('删除失败', String(e?.message ?? '请重试'));
+      }
+    };
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm('确定删除这条内容？不可恢复。')) run();
+      return;
+    }
+    Alert.alert('删除内容', '确定删除这条内容？不可恢复。', [
+      { text: '取消', style: 'cancel' },
+      { text: '删除', style: 'destructive', onPress: run },
+    ]);
+  }
+
+  function onDeleteComment(c: Comment) {
+    const run = async () => {
+      try {
+        await deleteComment(id ?? '', c.id);
+        setComments((prev) => prev.filter((x) => x.id !== c.id));
+      } catch (e: any) {
+        Alert.alert('删除失败', String(e?.message ?? '请重试'));
+      }
+    };
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm('确定删除这条评论？')) run();
+      return;
+    }
+    Alert.alert('删除评论', '确定删除这条评论？', [
+      { text: '取消', style: 'cancel' },
+      { text: '删除', style: 'destructive', onPress: run },
+    ]);
+  }
+
   const media = post?.media ?? [];
   const images = media.filter((m) => m.type === 'image');
   const videoUri = media.find((m) => m.type === 'video')?.url ?? null;
@@ -200,6 +244,11 @@ export default function PostDetail() {
                         <Text style={styles.cLvText}>Lv{c.authorLevel}</Text>
                       </View>
                       <Text style={styles.commentDate}>{c.date}</Text>
+                      {(c.mine || isAdmin) && (
+                        <Pressable onPress={() => onDeleteComment(c)} hitSlop={8} style={styles.cDel}>
+                          <Ionicons name="trash-outline" size={16} color={Brand.textFaint} />
+                        </Pressable>
+                      )}
                     </View>
                     <Text style={styles.commentBody}>{c.content}</Text>
                   </View>
@@ -233,9 +282,15 @@ export default function PostDetail() {
             </View>
 
             <View style={styles.actions}>
-              <Pressable hitSlop={8}>
-                <Ionicons name="ban-outline" size={26} color={Brand.textSub} />
-              </Pressable>
+              {canDeletePost ? (
+                <Pressable onPress={onDeletePost} hitSlop={8}>
+                  <Ionicons name="trash-outline" size={25} color={Brand.danger} />
+                </Pressable>
+              ) : (
+                <Pressable hitSlop={8}>
+                  <Ionicons name="ban-outline" size={26} color={Brand.textSub} />
+                </Pressable>
+              )}
               <View style={styles.actionRight}>
                 <Pressable style={styles.actionItem} onPress={onFavorite} hitSlop={8}>
                   <Ionicons
@@ -326,6 +381,7 @@ const styles = StyleSheet.create({
   cLvBadge: { backgroundColor: Brand.greenSoft, borderRadius: R.sm, paddingHorizontal: 6, paddingVertical: 1 },
   cLvText: { fontSize: F.tiny, fontWeight: '700', color: Brand.greenDeep },
   commentDate: { fontSize: F.tiny, color: Brand.textFaint },
+  cDel: { marginLeft: 'auto' },
   commentBody: { fontSize: F.body, color: '#3A3D42', lineHeight: 22 },
   noComments: { fontSize: F.small, color: Brand.textSub, paddingVertical: S.md },
   commentBar: {

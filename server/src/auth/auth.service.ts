@@ -17,6 +17,7 @@ export type PublicUser = {
   city: string;
   points: number;
   level: number;
+  title: string;
   avatar: string | null;
   role: string;
 };
@@ -48,7 +49,8 @@ export class AuthService implements OnModuleInit {
     }
   }
 
-  private publicUser(u: any): PublicUser {
+  private async publicUser(u: any): Promise<PublicUser> {
+    const lt = await this.prisma.levelTitle.findUnique({ where: { level: u.level ?? 1 } });
     return {
       id: u.id,
       username: u.username ?? null,
@@ -57,6 +59,7 @@ export class AuthService implements OnModuleInit {
       city: u.city,
       points: u.points,
       level: u.level,
+      title: lt?.name ?? '',
       avatar: u.avatar ?? null,
       role: u.role ?? 'user',
     };
@@ -94,7 +97,7 @@ export class AuthService implements OnModuleInit {
         city: '广州',
       },
     });
-    return { token: this.sign(user.id), user: this.publicUser(user) };
+    return { token: this.sign(user.id), user: await this.publicUser(user) };
   }
 
   async login(dto: { account: string; password: string }) {
@@ -106,12 +109,12 @@ export class AuthService implements OnModuleInit {
     if (!user || !user.passwordHash || !bcrypt.compareSync(dto.password, user.passwordHash))
       throw new UnauthorizedException('账号或密码错误');
     if (user.status === 'banned') throw new UnauthorizedException('账号已被封禁');
-    return { token: this.sign(user.id), user: this.publicUser(user) };
+    return { token: this.sign(user.id), user: await this.publicUser(user) };
   }
 
   async me(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException();
-    return this.publicUser(user);
+    return await this.publicUser(user);
   }
 }

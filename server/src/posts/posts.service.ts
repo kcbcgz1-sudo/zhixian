@@ -34,19 +34,15 @@ export class PostsService {
     private readonly levels: LevelsService,
   ) {}
 
-  async findAll(category?: string, userId?: string | null) {
-    const isCat = category && category !== 'all';
-    const posts = await this.prisma.post.findMany({
-      where: { status: PostStatus.published, ...(isCat ? { category } : {}) },
-      orderBy: [{ trustScore: 'desc' }, { createdAt: 'desc' }],
-      include: { author: true },
-    });
+  private async shapeList(posts: any[], userId?: string | null) {
     const ids = posts.map((p) => p.id);
-    const grouped = await this.prisma.interaction.groupBy({
-      by: ['postId', 'type'],
-      where: { postId: { in: ids } },
-      _count: { _all: true },
-    });
+    const grouped = ids.length
+      ? await this.prisma.interaction.groupBy({
+          by: ['postId', 'type'],
+          where: { postId: { in: ids } },
+          _count: { _all: true },
+        })
+      : [];
     const cmap = new Map<string, number>();
     const lmap = new Map<string, number>();
     const fmap = new Map<string, number>();
@@ -63,7 +59,7 @@ export class PostsService {
     }
     const likedSet = new Set<string>();
     const favSet = new Set<string>();
-    if (userId) {
+    if (userId && ids.length) {
       const mine = await this.prisma.interaction.findMany({
         where: {
           userId,
@@ -83,8 +79,70 @@ export class PostsService {
         favorites: fmap.get(p.id) ?? 0,
         liked: likedSet.has(p.id),
         favorited: favSet.has(p.id),
+        mine: !!userId && p.authorId === userId,
       }),
     );
+  }
+
+  async findAll(category?: string, userId?: string | null) {
+    const isCat = category && category !== 'all';
+    const posts = await this.prisma.post.findMany({
+      where: { status: PostStatus.published, ...(isCat ? { category } : {}) },
+      orderBy: [{ trustScore: 'desc' }, { createdAt: 'desc' }],
+      include: { author: true },
+    });
+    return this.shapeList(posts, userId);
+  }
+
+  async myPosts(userId?: string | null) {
+    if (!userId) throw new ForbiddenException('请先登录');
+    const posts = await this.prisma.post.findMany({
+      where: { authorId: userId },
+      orderBy: { createdAt: 'desc' },
+      include: { author: true },
+    });
+    return this.shapeList(posts, userId);
+  }
+
+  async myFavorites(userId?: string | null) {
+    if (!userId) throw new ForbiddenException('请先登录');
+    const favs = await this.prisma.interaction.findMany({
+      where: { userId, type: InteractionType.favorite },
+      orderBy: { createdAt: 'desc' },
+    });
+    const ids = favs.map((f) => f.postId);
+    if (!ids.length) return [];
+    const posts = await this.prisma.post.findMany({
+      where: { id: { in: ids }, status: PostStatus.published },
+      include: { author: true },
+    });
+    const order = new Map(ids.map((id, i) => [id, i]));
+    posts.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    return this.shapeList(posts, userId);
+  }
+
+  async deleteOwnPost(postId: string, userId?: string | null) {
+    if (!userId) throw new ForbiddenException('请先登录');
+    const post = await this.prisma.post.findUnique({ where: { id: postId } });
+    if (!post) throw new NotFoundException('post not found');
+    const me = await this.prisma.user.findUnique({ where: { id: userId } });
+    const isAdmin = (me?.role ?? 'user') === 'admin';
+    if (!isAdmin && post.authorId !== userId) throw new ForbiddenException('只能删除自己的内容');
+    await this.prisma.interaction.deleteMany({ where: { postId } });
+    await this.prisma.postImage.deleteMany({ where: { postId } });
+    await this.prisma.post.delete({ where: { id: postId } });
+    return { ok: true };
+  }
+
+  async deleteComment(commentId: string, userId?: string | null) {
+    if (!userId) throw new ForbiddenException('请先登录');
+    const c = await this.prisma.interaction.findUnique({ where: { id: commentId } });
+    if (!c || c.type !== InteractionType.comment) throw new NotFoundException('comment not found');
+    const me = await this.prisma.user.findUnique({ where: { id: userId } });
+    const isAdmin = (me?.role ?? 'user') === 'admin';
+    if (!isAdmin && c.userId !== userId) throw new ForbiddenException('只能删除自己的评论');
+    await this.prisma.interaction.delete({ where: { id: commentId } });
+    return { ok: true };
   }
 
   async findOne(id: string, userId?: string | null) {
@@ -108,7 +166,14 @@ export class PostsService {
       liked = mine.some((m) => m.type === InteractionType.like);
       favorited = mine.some((m) => m.type === InteractionType.favorite);
     }
-    return this.shape(post, { comments, likes, favorites, liked, favorited });
+    return this.shape(post, {
+      comments,
+      likes,
+      favorites,
+      liked,
+      favorited,
+      mine: !!userId && post.authorId === userId,
+    });
   }
 
   // ── 좋아요 / 수집 ──
@@ -137,17 +202,18 @@ export class PostsService {
   }
 
   // ── 댓글 ──
-  private shapeComment(r: any) {
+  private shapeComment(r: any, requesterId?: string | null) {
     return {
       id: r.id,
       content: r.content ?? '',
       author: r.user?.nickname ?? '',
       authorLevel: r.user?.level ?? 1,
       date: r.createdAt.toISOString().slice(0, 16).replace('T', ' '),
+      mine: !!requesterId && r.userId === requesterId,
     };
   }
 
-  async listComments(postId: string) {
+  async listComments(postId: string, userId?: string | null) {
     const post = await this.prisma.post.findUnique({ where: { id: postId } });
     if (!post) throw new NotFoundException('post not found');
     const rows = await this.prisma.interaction.findMany({
@@ -155,7 +221,7 @@ export class PostsService {
       orderBy: { createdAt: 'desc' },
       include: { user: true },
     });
-    return rows.map((r) => this.shapeComment(r));
+    return rows.map((r) => this.shapeComment(r, userId));
   }
 
   async addComment(postId: string, content: string, authorId?: string | null) {
@@ -180,7 +246,7 @@ export class PostsService {
       data: { postId, userId: user.id, type: InteractionType.comment, content: text },
       include: { user: true },
     });
-    return this.shapeComment(c);
+    return this.shapeComment(c, user.id);
   }
 
   async create(dto: CreatePostDto, authorId?: string | null) {
@@ -238,6 +304,7 @@ export class PostsService {
       favorites?: number;
       liked?: boolean;
       favorited?: boolean;
+      mine?: boolean;
     } = {},
   ) {
     const a = (p.attributes ?? {}) as Record<string, any>;
@@ -257,6 +324,8 @@ export class PostsService {
       favorites: x.favorites ?? 0,
       liked: x.liked ?? false,
       favorited: x.favorited ?? false,
+      mine: x.mine ?? false,
+      status: p.status,
       date: d.toISOString().slice(0, 10).replace(/-/g, '.'),
       body: p.body,
       aiImage: a.aiImage === true,

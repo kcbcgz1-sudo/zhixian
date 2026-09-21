@@ -1,11 +1,13 @@
 // 知闲 · 我的(프로필) — 로그인 상태 반영
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
+import { fetchMyPosts } from '@/data/api';
 import { useAuth } from '@/data/auth';
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -16,9 +18,9 @@ function Field({ label, value }: { label: string; value: string }) {
     </View>
   );
 }
-function Row({ label }: { label: string }) {
+function Row({ label, onPress }: { label: string; onPress?: () => void }) {
   return (
-    <Pressable style={styles.row}>
+    <Pressable style={styles.row} onPress={onPress}>
       <Text style={styles.rowText}>{label}</Text>
       <Ionicons name="chevron-forward" size={20} color={Brand.textFaint} />
     </Pressable>
@@ -28,6 +30,23 @@ function Row({ label }: { label: string }) {
 export default function MineScreen() {
   const router = useRouter();
   const { user, loading, logout } = useAuth();
+  const [postCount, setPostCount] = useState<number | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      if (user) {
+        fetchMyPosts()
+          .then((list) => alive && setPostCount(list.length))
+          .catch(() => alive && setPostCount(null));
+      } else {
+        setPostCount(null);
+      }
+      return () => {
+        alive = false;
+      };
+    }, [user?.id]),
+  );
 
   return (
     <View style={styles.container}>
@@ -75,8 +94,8 @@ export default function MineScreen() {
           <View style={styles.stats}>
             {[
               { label: '积分', value: String(user.points) },
-              { label: '段位', value: `Lv.${user.level}` },
-              { label: '干货帖', value: '0' },
+              { label: user.title || '段位', value: `Lv.${user.level}` },
+              { label: '干货帖', value: postCount != null ? String(postCount) : '—' },
             ].map((s) => (
               <View key={s.label} style={styles.stat}>
                 <Text style={styles.statValue}>{s.value}</Text>
@@ -94,8 +113,8 @@ export default function MineScreen() {
           )}
 
           <View style={styles.rows}>
-            <Row label="我的发布" />
-            <Row label="我的收藏" />
+            <Row label="我的发布" onPress={() => router.push('/my-posts?type=mine' as any)} />
+            <Row label="我的收藏" onPress={() => router.push('/my-posts?type=fav' as any)} />
             <Row label="适老化设置" />
             <Row label="关于知闲" />
           </View>
