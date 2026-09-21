@@ -12,7 +12,7 @@ const ICONS: Record<string, { on: keyof typeof Ionicons.glyphMap; off: keyof typ
   index: { on: 'home', off: 'home-outline' },
   mine: { on: 'person', off: 'person-outline' },
   messages: { on: 'chatbubble', off: 'chatbubble-outline' },
-  favorites: { on: 'heart', off: 'heart-outline' },
+  favorites: { on: 'bookmark', off: 'bookmark-outline' },
 };
 
 export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {

@@ -298,7 +298,7 @@ export default function PostDetail() {
                     size={25}
                     color={favorited ? Brand.green : Brand.textSub}
                   />
-                  {favCount > 0 && <Text style={styles.actionCount}>{favCount}</Text>}
+                  <Text style={[styles.actionLabel, favorited && styles.actionLabelOn]}>{favCount > 0 ? `收藏 ${favCount}` : '收藏'}</Text>
                 </Pressable>
                 <Pressable style={styles.actionItem} onPress={onLike} hitSlop={8}>
                   <Ionicons
@@ -306,10 +306,11 @@ export default function PostDetail() {
                     size={28}
                     color={liked ? Brand.green : Brand.textSub}
                   />
-                  {likeCount > 0 && <Text style={styles.actionCount}>{likeCount}</Text>}
+                  <Text style={[styles.actionLabel, liked && styles.actionLabelOn]}>{likeCount > 0 ? `赞 ${likeCount}` : '赞'}</Text>
                 </Pressable>
-                <Pressable hitSlop={8}>
+                <Pressable style={styles.actionItem} hitSlop={8}>
                   <Ionicons name="share-social-outline" size={26} color={Brand.textSub} />
+                  <Text style={styles.actionLabel}>分享</Text>
                 </Pressable>
               </View>
             </View>
@@ -364,9 +365,11 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Brand.border,
   },
-  actionRight: { flexDirection: 'row', alignItems: 'center', gap: S.xl },
-  actionItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  actionRight: { flexDirection: 'row', alignItems: 'flex-end', gap: S.xl },
+  actionItem: { flexDirection: 'column', alignItems: 'center', gap: 3 },
   actionCount: { fontSize: F.small, color: Brand.textSub, fontWeight: '600' },
+  actionLabel: { fontSize: F.tiny, color: Brand.textSub, fontWeight: '600' },
+  actionLabelOn: { color: Brand.green },
   commentsSection: {
     marginTop: S.xl,
     borderTopWidth: StyleSheet.hairlineWidth,
