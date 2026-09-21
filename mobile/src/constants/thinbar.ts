@@ -11,10 +11,10 @@ export function injectThinBar() {
     const s = document.createElement('style');
     s.id = id;
     s.textContent =
-      '[data-thinbar]{scrollbar-width:thin;scrollbar-color:#111 transparent;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}' +
-      '[data-thinbar]::-webkit-scrollbar{height:6px}' +
-      '[data-thinbar]::-webkit-scrollbar-thumb{background:#111;border-radius:3px}' +
-      '[data-thinbar]::-webkit-scrollbar-thumb:hover{background:#000}' +
+      '[data-thinbar]{scrollbar-width:thin;scrollbar-color:#CBD0D6 transparent;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}' +
+      '[data-thinbar]::-webkit-scrollbar{height:5px}' +
+      '[data-thinbar]::-webkit-scrollbar-thumb{background:#CBD0D6;border-radius:3px}' +
+      '[data-thinbar]::-webkit-scrollbar-thumb:hover{background:#B0B7BF}' +
       '[data-thinbar]::-webkit-scrollbar-track{background:transparent}';
     document.head.appendChild(s);
   }
