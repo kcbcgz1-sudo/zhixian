@@ -11,9 +11,14 @@ export class PostsController {
   ) {}
 
   @Get()
-  findAll(@Req() req: Request, @Query('category') category?: string) {
+  findAll(@Req() req: Request, @Query('category') category?: string, @Query('q') q?: string) {
     const uid = this.auth.verifyToken(req.headers['authorization']);
-    return this.posts.findAll(category, uid);
+    return this.posts.findAll(category, uid, q);
+  }
+
+  @Get('hot-keywords')
+  hotKeywords() {
+    return this.posts.hotKeywords();
   }
 
   @Get('mine')

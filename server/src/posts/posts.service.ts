@@ -84,14 +84,43 @@ export class PostsService {
     );
   }
 
-  async findAll(category?: string, userId?: string | null) {
+  async findAll(category?: string, userId?: string | null, q?: string) {
     const isCat = category && category !== 'all';
+    const kw = q?.trim();
+    const where: any = { status: PostStatus.published };
+    if (isCat) where.category = category;
+    if (kw) {
+      where.OR = [
+        { title: { contains: kw, mode: 'insensitive' } },
+        { body: { contains: kw, mode: 'insensitive' } },
+      ];
+    }
     const posts = await this.prisma.post.findMany({
-      where: { status: PostStatus.published, ...(isCat ? { category } : {}) },
+      where,
       orderBy: [{ trustScore: 'desc' }, { createdAt: 'desc' }],
       include: { author: true },
     });
     return this.shapeList(posts, userId);
+  }
+
+  async hotKeywords(): Promise<string[]> {
+    const posts = await this.prisma.post.findMany({
+      where: { status: PostStatus.published },
+      select: { body: true },
+    });
+    const counts = new Map<string, number>();
+    for (const p of posts) {
+      const tags = (p.body.match(/#([^#\s]+)/g) || []).map((t) => t.replace(/^#/, ''));
+      for (const t of tags) counts.set(t, (counts.get(t) || 0) + 1);
+    }
+    const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]).map((e) => e[0]);
+    const defaults = ['登山', '钓鱼', '白云山', '广州周边', '免费', '亲子', '徒步', '露营'];
+    const out: string[] = [];
+    for (const k of [...sorted, ...defaults]) {
+      if (!out.includes(k)) out.push(k);
+      if (out.length >= 8) break;
+    }
+    return out;
   }
 
   async myPosts(userId?: string | null) {

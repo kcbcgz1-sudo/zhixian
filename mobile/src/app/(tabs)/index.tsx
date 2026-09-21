@@ -12,7 +12,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -86,6 +85,10 @@ export default function HomeScreen() {
         <View style={styles.locationRow}>
           <Ionicons name="location-outline" size={16} color={Brand.textSub} />
           <Text style={styles.location}>广州</Text>
+          <View style={{ flex: 1 }} />
+          <Pressable onPress={() => router.push('/search' as any)} hitSlop={10}>
+            <Ionicons name="search" size={22} color={Brand.text} />
+          </Pressable>
         </View>
 
         <View style={styles.chipsBox}>
@@ -108,20 +111,6 @@ export default function HomeScreen() {
               );
             })}
           </ScrollView>
-        </View>
-
-        <View style={styles.searchRow}>
-          <View style={styles.searchBox}>
-            <Ionicons name="search" size={20} color={Brand.textSub} />
-            <TextInput
-              placeholder="Search"
-              placeholderTextColor={Brand.textFaint}
-              style={styles.searchInput}
-            />
-          </View>
-          <Pressable style={styles.filterBtn}>
-            <Ionicons name="options-outline" size={22} color="#fff" />
-          </Pressable>
         </View>
 
         {loading ? (

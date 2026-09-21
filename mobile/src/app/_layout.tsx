@@ -15,6 +15,7 @@ export default function RootLayout() {
         <Stack.Screen name="publish" options={{ presentation: 'modal' }} />
         <Stack.Screen name="post-new" />
         <Stack.Screen name="my-posts" />
+        <Stack.Screen name="search" />
         <Stack.Screen name="login" options={{ presentation: 'modal' }} />
         <Stack.Screen name="register" options={{ presentation: 'modal' }} />
         <Stack.Screen name="admin" />

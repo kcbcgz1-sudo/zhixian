@@ -133,6 +133,16 @@ export async function fetchMyLikes(): Promise<Post[]> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as Post[];
 }
+export async function searchPosts(q: string): Promise<Post[]> {
+  const res = await fetch(`${API_BASE}/posts?q=${encodeURIComponent(q)}`, { headers: { ...authHeaders() } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as Post[];
+}
+export async function fetchHotKeywords(): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/posts/hot-keywords`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as string[];
+}
 export async function deletePost(postId: string): Promise<void> {
   const res = await fetch(`${API_BASE}/posts/${postId}`, {
     method: 'DELETE',
