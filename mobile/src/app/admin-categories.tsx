@@ -23,6 +23,7 @@ import {
   adminCategoryUpdate,
   type AdminCategory,
 } from '@/data/api';
+import { useAuth } from '@/data/auth';
 
 type Form = {
   id: string | null;
@@ -36,6 +37,7 @@ const EMPTY: Form = { id: null, code: '', name: '', sort: '0', writeMinLevel: '1
 
 export default function AdminCategoriesScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [list, setList] = useState<AdminCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<Form | null>(null);
@@ -53,7 +55,8 @@ export default function AdminCategoriesScreen() {
   };
   useEffect(() => {
     load();
-  }, []);
+    // 인증 준비(토큰 세팅)되면 재조회 — 새로고침/딥링크 레이스 방지
+  }, [user?.id]);
 
   function openNew() {
     setForm({ ...EMPTY });
