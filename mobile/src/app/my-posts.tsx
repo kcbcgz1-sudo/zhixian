@@ -32,6 +32,11 @@ export default function MyPostsScreen() {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
+    if (!user) {
+      setList([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       setList(isFav ? await fetchMyFavorites() : await fetchMyPosts());
@@ -75,7 +80,15 @@ export default function MyPostsScreen() {
           <View style={{ width: 26 }} />
         </View>
 
-        {loading ? (
+        {!user ? (
+          <View style={styles.center}>
+            <Ionicons name="lock-closed-outline" size={46} color={Brand.textFaint} />
+            <Text style={styles.loginMsg}>登录后查看{isFav ? '收藏' : '发布'}</Text>
+            <Pressable style={styles.loginBtn} onPress={() => router.push('/login' as any)}>
+              <Text style={styles.loginBtnText}>去登录</Text>
+            </Pressable>
+          </View>
+        ) : loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={Brand.green} size="large" />
           </View>
@@ -134,7 +147,16 @@ const styles = StyleSheet.create({
     borderBottomColor: Brand.border,
   },
   headerTitle: { fontSize: F.h2, fontWeight: '800', color: Brand.text },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: S.md },
+  loginMsg: { fontSize: F.body, color: Brand.textSub },
+  loginBtn: {
+    backgroundColor: Brand.green,
+    paddingHorizontal: S.xl,
+    paddingVertical: S.md,
+    borderRadius: R.pill,
+    marginTop: S.sm,
+  },
+  loginBtnText: { color: '#fff', fontSize: F.body, fontWeight: '700' },
   content: { padding: S.lg, gap: S.md },
   card: {
     flexDirection: 'row',
