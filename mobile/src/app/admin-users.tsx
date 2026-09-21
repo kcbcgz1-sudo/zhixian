@@ -13,9 +13,11 @@ import {
   adminUserUnban,
   type AdminUser,
 } from '@/data/api';
+import { useAuth } from '@/data/auth';
 
 export default function AdminUsersScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [list, setList] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +33,7 @@ export default function AdminUsersScreen() {
   };
   useEffect(() => {
     load();
-  }, []);
+  }, [user?.id]);
 
   async function act(fn: () => Promise<any>) {
     try {

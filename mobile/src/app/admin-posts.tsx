@@ -7,11 +7,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
 import { adminPostDelete, adminPostRemove, adminPostRestore, adminPosts, type AdminPost } from '@/data/api';
+import { useAuth } from '@/data/auth';
 
 const CAT_LABEL: Record<string, string> = { fishing: '钓鱼', hiking: '登山', stay: '短租' };
 
 export default function AdminPostsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [list, setList] = useState<AdminPost[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,7 +29,7 @@ export default function AdminPostsScreen() {
   };
   useEffect(() => {
     load();
-  }, []);
+  }, [user?.id]);
 
   async function act(fn: () => Promise<any>) {
     try {
