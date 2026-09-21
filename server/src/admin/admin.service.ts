@@ -37,6 +37,7 @@ export class AdminService {
       role: u.role ?? 'user',
       status: u.status,
       points: u.points,
+      level: u.level ?? 1,
       posts: u._count.posts,
       createdAt: u.createdAt,
     }));
@@ -45,6 +46,12 @@ export class AdminService {
   async setUserStatus(id: string, status: string) {
     await this.prisma.user.update({ where: { id }, data: { status } });
     return { ok: true };
+  }
+
+  async setUserLevel(id: string, level: number) {
+    const lv = clampInt(level, 1, 10, 1);
+    await this.prisma.user.update({ where: { id }, data: { level: lv } });
+    return { ok: true, level: lv };
   }
 
   async posts() {

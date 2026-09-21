@@ -159,6 +159,7 @@ export type AdminUser = {
   role: string;
   status: string;
   points: number;
+  level: number;
   posts: number;
   createdAt: string;
 };
@@ -170,6 +171,12 @@ export const adminPostDelete = (id: string) => authFetch(`/admin/posts/${id}`, {
 export const adminUsers = (): Promise<AdminUser[]> => authFetch('/admin/users');
 export const adminUserBan = (id: string) => authFetch(`/admin/users/${id}/ban`, { method: 'POST' });
 export const adminUserUnban = (id: string) => authFetch(`/admin/users/${id}/unban`, { method: 'POST' });
+export const adminUserSetLevel = (id: string, level: number) =>
+  authFetch(`/admin/users/${id}/level`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ level }),
+  });
 
 // ── 관리자: 카테고리 관리 ──
 export type AdminCategory = {

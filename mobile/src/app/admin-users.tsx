@@ -6,7 +6,13 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
-import { adminUserBan, adminUserUnban, adminUsers, type AdminUser } from '@/data/api';
+import {
+  adminUserBan,
+  adminUsers,
+  adminUserSetLevel,
+  adminUserUnban,
+  type AdminUser,
+} from '@/data/api';
 
 export default function AdminUsersScreen() {
   const router = useRouter();
@@ -34,6 +40,12 @@ export default function AdminUsersScreen() {
     } catch {
       Alert.alert('操作失败', '请重试');
     }
+  }
+
+  function changeLevel(u: AdminUser, next: number) {
+    const lv = Math.max(1, Math.min(10, next));
+    if (lv === u.level) return;
+    act(() => adminUserSetLevel(u.id, lv));
   }
 
   return (
@@ -80,6 +92,16 @@ export default function AdminUsersScreen() {
                     <Text style={styles.sub} numberOfLines={1}>
                       {u.username ?? '—'} · 帖 {u.posts} · 积分 {u.points}
                     </Text>
+                    <View style={styles.lvRow}>
+                      <Text style={styles.lvLabel}>等级</Text>
+                      <Pressable style={styles.lvBtn} onPress={() => changeLevel(u, u.level - 1)} hitSlop={6}>
+                        <Text style={styles.lvBtnText}>−</Text>
+                      </Pressable>
+                      <Text style={styles.lvText}>Lv{u.level}</Text>
+                      <Pressable style={styles.lvBtn} onPress={() => changeLevel(u, u.level + 1)} hitSlop={6}>
+                        <Text style={styles.lvBtnText}>＋</Text>
+                      </Pressable>
+                    </View>
                   </View>
                   {!isAdmin &&
                     (banned ? (
@@ -135,6 +157,18 @@ const styles = StyleSheet.create({
   banBadge: { backgroundColor: '#F3D9D2', borderRadius: R.sm, paddingHorizontal: 6, paddingVertical: 1 },
   banBadgeText: { color: Brand.danger, fontSize: F.tiny, fontWeight: '700' },
   sub: { fontSize: F.small, color: Brand.textSub },
+  lvRow: { flexDirection: 'row', alignItems: 'center', gap: S.sm, marginTop: 4 },
+  lvLabel: { fontSize: F.tiny, color: Brand.textSub },
+  lvBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 999,
+    backgroundColor: Brand.greenSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lvBtnText: { fontSize: 18, fontWeight: '800', color: Brand.greenDeep, lineHeight: 20 },
+  lvText: { fontSize: F.small, fontWeight: '800', color: Brand.text, minWidth: 36, textAlign: 'center' },
   btn: { paddingHorizontal: S.lg, paddingVertical: S.sm, borderRadius: R.md },
   btnGreen: { backgroundColor: Brand.green },
   btnGreenText: { color: '#fff', fontWeight: '700', fontSize: F.small },

@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PostStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -56,6 +61,11 @@ export class PostsService {
       author =
         (await this.prisma.user.findFirst({ where: { nickname: '我' } })) ??
         (await this.prisma.user.create({ data: { nickname: '我', city: '广州' } }));
+    }
+
+    // 발제 권한: 회원레벨 ≥ 카테고리 writeMinLevel (관리자는 예외)
+    if ((author.role ?? 'user') !== 'admin' && (author.level ?? 1) < catRow.writeMinLevel) {
+      throw new ForbiddenException(`该分类需要 Lv${catRow.writeMinLevel} 才能发帖`);
     }
 
     const body = dto.body.trim();

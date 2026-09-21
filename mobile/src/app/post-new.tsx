@@ -44,6 +44,15 @@ export default function PostNewScreen() {
       .catch(() => {});
   }, []);
   useEffect(() => injectThinBar(), []);
+  // 선택된 카테고리가 레벨 부족이면 발제 가능한 첫 카테고리로 전환
+  useEffect(() => {
+    if (!cats.length || !user || user.role === 'admin') return;
+    const cur = cats.find((c) => c.code === category);
+    if (cur && user.level < cur.writeMinLevel) {
+      const allowed = cats.find((c) => user.level >= c.writeMinLevel);
+      if (allowed) setCategory(allowed.code);
+    }
+  }, [cats, user, category]);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -135,13 +144,25 @@ export default function PostNewScreen() {
               {...(Platform.OS === 'web' ? ({ dataSet: { thinbar: 'cat' } } as any) : {})}>
               {cats.map((c) => {
                 const active = c.code === category;
+                const locked = !!user && user.role !== 'admin' && user.level < c.writeMinLevel;
                 return (
                   <Pressable
                     key={c.code}
-                    onPress={() => setCategory(c.code)}
-                    style={[styles.cat, active ? styles.catOn : styles.catOff]}>
-                    <Text style={[styles.catText, { color: active ? '#fff' : Brand.text }]}>
+                    onPress={() => {
+                      if (locked) {
+                        Alert.alert('提示', `该分类需要 Lv${c.writeMinLevel} 才能发帖`);
+                        return;
+                      }
+                      setCategory(c.code);
+                    }}
+                    style={[styles.cat, active ? styles.catOn : styles.catOff, locked && styles.catLocked]}>
+                    <Text
+                      style={[
+                        styles.catText,
+                        { color: active ? '#fff' : locked ? Brand.textFaint : Brand.text },
+                      ]}>
                       {c.name}
+                      {locked ? ` 🔒Lv${c.writeMinLevel}` : ''}
                     </Text>
                   </Pressable>
                 );
@@ -254,6 +275,7 @@ const styles = StyleSheet.create({
   cat: { paddingHorizontal: S.xl, paddingVertical: 10, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center' },
   catOn: { backgroundColor: Brand.green },
   catOff: { backgroundColor: '#E7EAEC' },
+  catLocked: { opacity: 0.55 },
   catText: { fontSize: F.body, fontWeight: '700', lineHeight: 24, includeFontPadding: false, textAlignVertical: 'center' },
   distWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
   dist: { paddingHorizontal: S.lg, paddingVertical: 8, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center' },

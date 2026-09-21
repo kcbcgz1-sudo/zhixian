@@ -53,6 +53,12 @@ export class AdminController {
     return this.admin.setUserStatus(id, 'active');
   }
 
+  @Post('users/:id/level')
+  async setLevel(@Param('id') id: string, @Body() body: any, @Req() req: Request) {
+    await this.requireAdmin(req);
+    return this.admin.setUserLevel(id, Number(body?.level));
+  }
+
   @Get('posts')
   async posts(@Req() req: Request) {
     await this.requireAdmin(req);
