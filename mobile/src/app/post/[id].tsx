@@ -5,19 +5,34 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
-import { fetchPost } from '@/data/api';
+import { createComment, fetchCategories, fetchComments, fetchPost, type Comment } from '@/data/api';
+import { useAuth } from '@/data/auth';
 import type { Post } from '@/data/seed';
 
 export default function PostDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuth();
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentText, setCommentText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [commentMinLevel, setCommentMinLevel] = useState(1);
 
   useEffect(() => {
     let alive = true;
@@ -25,6 +40,11 @@ export default function PostDetail() {
       try {
         const p = await fetchPost(id ?? '');
         if (alive) setPost(p);
+        try {
+          const cats = await fetchCategories();
+          const cat = cats.find((c) => c.code === p.category);
+          if (alive && cat) setCommentMinLevel(cat.commentMinLevel);
+        } catch {}
       } catch {
         if (alive) setPost(null);
       } finally {
@@ -35,6 +55,33 @@ export default function PostDetail() {
       alive = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    fetchComments(id ?? '')
+      .then((list) => setComments(list))
+      .catch(() => {});
+  }, [id]);
+
+  const canComment = !user || user.role === 'admin' || user.level >= commentMinLevel;
+
+  async function sendComment() {
+    if (!user) {
+      router.push('/login' as any);
+      return;
+    }
+    const t = commentText.trim();
+    if (!t) return;
+    setSending(true);
+    try {
+      const c = await createComment(id ?? '', t);
+      setComments((prev) => [c, ...prev]);
+      setCommentText('');
+    } catch (e: any) {
+      Alert.alert('评论失败', String(e?.message ?? '请重试'));
+    } finally {
+      setSending(false);
+    }
+  }
 
   const media = post?.media ?? [];
   const images = media.filter((m) => m.type === 'image');
@@ -86,7 +133,51 @@ export default function PostDetail() {
               <Text style={styles.title}>{post?.title ?? '内容不存在'}</Text>
               {post?.date ? <Text style={styles.date}>{post.date}</Text> : null}
               {post?.body ? <Text style={styles.body}>{post.body}</Text> : null}
+
+              {/* 댓글 */}
+              <View style={styles.commentsSection}>
+                <Text style={styles.commentsTitle}>
+                  评论{comments.length ? ` ${comments.length}` : ''}
+                </Text>
+                {comments.map((c) => (
+                  <View key={c.id} style={styles.commentItem}>
+                    <View style={styles.commentHead}>
+                      <Text style={styles.commentAuthor}>{c.author}</Text>
+                      <View style={styles.cLvBadge}>
+                        <Text style={styles.cLvText}>Lv{c.authorLevel}</Text>
+                      </View>
+                      <Text style={styles.commentDate}>{c.date}</Text>
+                    </View>
+                    <Text style={styles.commentBody}>{c.content}</Text>
+                  </View>
+                ))}
+                {comments.length === 0 && (
+                  <Text style={styles.noComments}>还没有评论，来抢沙发～</Text>
+                )}
+              </View>
             </ScrollView>
+
+            <View style={styles.commentBar}>
+              <TextInput
+                style={styles.commentInput}
+                value={commentText}
+                onChangeText={setCommentText}
+                editable={canComment}
+                placeholder={canComment ? '写评论…' : `需要 Lv${commentMinLevel} 才能评论`}
+                placeholderTextColor={Brand.textFaint}
+                maxLength={500}
+              />
+              <Pressable
+                style={[styles.sendBtn, (!canComment || sending) && { opacity: 0.5 }]}
+                onPress={sendComment}
+                disabled={!canComment || sending}>
+                {sending ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.sendText}>发送</Text>
+                )}
+              </Pressable>
+            </View>
 
             <View style={styles.actions}>
               <Pressable hitSlop={8}>
@@ -157,4 +248,50 @@ const styles = StyleSheet.create({
     borderTopColor: Brand.border,
   },
   actionRight: { flexDirection: 'row', alignItems: 'center', gap: S.xl },
+  commentsSection: {
+    marginTop: S.xl,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Brand.border,
+    paddingTop: S.lg,
+    gap: S.md,
+  },
+  commentsTitle: { fontSize: F.body, fontWeight: '800', color: Brand.text },
+  commentItem: { gap: 4 },
+  commentHead: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
+  commentAuthor: { fontSize: F.small, fontWeight: '700', color: Brand.text },
+  cLvBadge: { backgroundColor: Brand.greenSoft, borderRadius: R.sm, paddingHorizontal: 6, paddingVertical: 1 },
+  cLvText: { fontSize: F.tiny, fontWeight: '700', color: Brand.greenDeep },
+  commentDate: { fontSize: F.tiny, color: Brand.textFaint },
+  commentBody: { fontSize: F.body, color: '#3A3D42', lineHeight: 22 },
+  noComments: { fontSize: F.small, color: Brand.textSub, paddingVertical: S.md },
+  commentBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: S.sm,
+    paddingHorizontal: S.lg,
+    paddingVertical: S.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Brand.border,
+  },
+  commentInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: Brand.border,
+    borderRadius: R.pill,
+    paddingHorizontal: S.lg,
+    height: 42,
+    fontSize: F.body,
+    color: Brand.text,
+    backgroundColor: Brand.bg,
+  },
+  sendBtn: {
+    backgroundColor: Brand.green,
+    borderRadius: R.pill,
+    paddingHorizontal: S.lg,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 64,
+  },
+  sendText: { color: '#fff', fontWeight: '700', fontSize: F.body },
 });

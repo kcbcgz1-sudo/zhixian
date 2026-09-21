@@ -87,6 +87,12 @@ export default function AdminScreen() {
               <Text style={styles.navSub}>新增 / 排序 / 权限</Text>
               <Ionicons name="chevron-forward" size={22} color={Brand.textFaint} />
             </Pressable>
+            <Pressable style={styles.nav} onPress={() => router.push('/admin-levels' as any)}>
+              <Ionicons name="ribbon-outline" size={24} color={Brand.text} />
+              <Text style={styles.navText}>等级称号</Text>
+              <Text style={styles.navSub}>Lv1~10 称号</Text>
+              <Ionicons name="chevron-forward" size={22} color={Brand.textFaint} />
+            </Pressable>
             <Pressable style={styles.nav} onPress={() => router.push('/admin-users' as any)}>
               <Ionicons name="people-outline" size={24} color={Brand.text} />
               <Text style={styles.navText}>用户管理</Text>

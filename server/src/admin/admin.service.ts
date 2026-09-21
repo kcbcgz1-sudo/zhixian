@@ -54,6 +54,24 @@ export class AdminService {
     return { ok: true, level: lv };
   }
 
+  // ── 레벨 칭호 관리 ──
+  async levelTitles() {
+    const rows = await this.prisma.levelTitle.findMany({ orderBy: { level: 'asc' } });
+    return rows.map((r) => ({ level: r.level, name: r.name }));
+  }
+
+  async setLevelTitle(level: number, name: string) {
+    const lv = clampInt(level, 1, 10, 1);
+    const nm = String(name ?? '').trim();
+    if (!nm) throw new BadRequestException('称号必填');
+    await this.prisma.levelTitle.upsert({
+      where: { level: lv },
+      update: { name: nm },
+      create: { level: lv, name: nm },
+    });
+    return { ok: true };
+  }
+
   async posts() {
     const list = await this.prisma.post.findMany({
       orderBy: { createdAt: 'desc' },

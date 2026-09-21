@@ -53,6 +53,11 @@ model Category {
   @@index([active, sort])
 }
 
+model LevelTitle {
+  level Int    @id // 1~10
+  name  String // 레벨별 칭호 (예: 新人)
+}
+
 model Post {
   id           String        @id @default(cuid())
   author       User          @relation(fields: [authorId], references: [id])

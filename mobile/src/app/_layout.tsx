@@ -19,6 +19,7 @@ export default function RootLayout() {
         <Stack.Screen name="admin" />
         <Stack.Screen name="admin-posts" />
         <Stack.Screen name="admin-categories" />
+        <Stack.Screen name="admin-levels" />
         <Stack.Screen name="admin-users" />
       </Stack>
       <BrandSplash />

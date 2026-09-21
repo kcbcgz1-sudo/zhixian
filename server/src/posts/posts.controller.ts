@@ -25,4 +25,15 @@ export class PostsController {
     const uid = this.auth.verifyToken(req.headers['authorization']);
     return this.posts.create(dto, uid);
   }
+
+  @Get(':id/comments')
+  comments(@Param('id') id: string) {
+    return this.posts.listComments(id);
+  }
+
+  @Post(':id/comments')
+  addComment(@Param('id') id: string, @Body() body: { content?: string }, @Req() req: Request) {
+    const uid = this.auth.verifyToken(req.headers['authorization']);
+    return this.posts.addComment(id, body?.content ?? '', uid);
+  }
 }

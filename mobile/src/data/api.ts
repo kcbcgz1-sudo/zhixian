@@ -47,6 +47,14 @@ export async function fetchCategories(): Promise<ApiCategory[]> {
   return (await res.json()) as ApiCategory[];
 }
 
+// ── 레벨 칭호 ──
+export type LevelTitle = { level: number; name: string };
+export async function fetchLevels(): Promise<LevelTitle[]> {
+  const res = await fetch(`${API_BASE}/levels`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as LevelTitle[];
+}
+
 // ── 업로드 ──
 export type UploadResult = { url: string; type: string };
 export async function uploadMedia(asset: {
@@ -83,8 +91,31 @@ export async function createPost(data: NewPost): Promise<Post> {
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error(`create ${res.status}`);
+  if (!res.ok) throw new Error(await parseError(res, '发布失败'));
   return (await res.json()) as Post;
+}
+
+// ── 댓글 ──
+export type Comment = {
+  id: string;
+  content: string;
+  author: string;
+  authorLevel: number;
+  date: string;
+};
+export async function fetchComments(postId: string): Promise<Comment[]> {
+  const res = await fetch(`${API_BASE}/posts/${postId}/comments`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as Comment[];
+}
+export async function createComment(postId: string, content: string): Promise<Comment> {
+  const res = await fetch(`${API_BASE}/posts/${postId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) throw new Error(await parseError(res, '评论失败'));
+  return (await res.json()) as Comment;
 }
 
 // ── 인증 ──
@@ -212,3 +243,12 @@ export const adminCategoryUpdate = (id: string, data: CategoryInput) =>
   });
 export const adminCategoryDelete = (id: string) =>
   authFetch(`/admin/categories/${id}`, { method: 'DELETE' });
+
+// ── 관리자: 레벨 칭호 ──
+export const adminLevels = (): Promise<LevelTitle[]> => authFetch('/admin/levels');
+export const adminLevelSetName = (level: number, name: string) =>
+  authFetch(`/admin/levels/${level}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });

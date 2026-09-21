@@ -59,6 +59,19 @@ export class AdminController {
     return this.admin.setUserLevel(id, Number(body?.level));
   }
 
+  // ── 레벨 칭호 ──
+  @Get('levels')
+  async levels(@Req() req: Request) {
+    await this.requireAdmin(req);
+    return this.admin.levelTitles();
+  }
+
+  @Post('levels/:level')
+  async setLevelTitle(@Param('level') level: string, @Body() body: any, @Req() req: Request) {
+    await this.requireAdmin(req);
+    return this.admin.setLevelTitle(Number(level), body?.name);
+  }
+
   @Get('posts')
   async posts(@Req() req: Request) {
     await this.requireAdmin(req);
