@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
+import { injectThinBar } from '@/constants/thinbar';
 import { createPost, fetchCategories, uploadMedia, type ApiCategory } from '@/data/api';
 import { useAuth } from '@/data/auth';
 import { type Category } from '@/data/seed';
@@ -41,6 +43,7 @@ export default function PostNewScreen() {
       })
       .catch(() => {});
   }, []);
+  useEffect(() => injectThinBar(), []);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -124,20 +127,26 @@ export default function PostNewScreen() {
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Text style={styles.label}>类型</Text>
-          <View style={styles.catRow}>
-            {cats.map((c) => {
-              const active = c.code === category;
-              return (
-                <Pressable
-                  key={c.code}
-                  onPress={() => setCategory(c.code)}
-                  style={[styles.cat, active ? styles.catOn : styles.catOff]}>
-                  <Text style={[styles.catText, { color: active ? '#fff' : Brand.text }]}>
-                    {c.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
+          <View style={styles.catScrollBox}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator
+              contentContainerStyle={styles.catRow}
+              {...(Platform.OS === 'web' ? ({ dataSet: { thinbar: 'cat' } } as any) : {})}>
+              {cats.map((c) => {
+                const active = c.code === category;
+                return (
+                  <Pressable
+                    key={c.code}
+                    onPress={() => setCategory(c.code)}
+                    style={[styles.cat, active ? styles.catOn : styles.catOff]}>
+                    <Text style={[styles.catText, { color: active ? '#fff' : Brand.text }]}>
+                      {c.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
           </View>
 
           <Text style={styles.label}>地区（广州）</Text>
@@ -240,7 +249,8 @@ const styles = StyleSheet.create({
   submitText: { color: '#fff', fontSize: F.body, fontWeight: '700' },
   content: { padding: S.lg, gap: S.sm, paddingBottom: S.xxl },
   label: { fontSize: F.sub, fontWeight: '700', color: Brand.text, marginTop: S.md },
-  catRow: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
+  catScrollBox: { height: 56 },
+  catRow: { flexDirection: 'row', gap: S.sm, alignItems: 'center', paddingRight: S.lg },
   cat: { paddingHorizontal: S.xl, paddingVertical: 10, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center' },
   catOn: { backgroundColor: Brand.green },
   catOff: { backgroundColor: '#E7EAEC' },

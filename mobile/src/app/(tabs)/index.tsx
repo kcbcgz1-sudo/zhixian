@@ -6,6 +6,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
+import { injectThinBar } from '@/constants/thinbar';
 import { fetchCategories, fetchPosts } from '@/data/api';
 import { type Category, type Post } from '@/data/seed';
 
@@ -36,6 +38,7 @@ export default function HomeScreen() {
       )
       .catch(() => {});
   }, []);
+  useEffect(() => injectThinBar(), []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,20 +66,26 @@ export default function HomeScreen() {
           <Text style={styles.location}>广州</Text>
         </View>
 
-        <View style={styles.chipsRow}>
-          {filters.map((f) => {
-            const active = f.key === filter;
-            return (
-              <Pressable
-                key={f.key}
-                onPress={() => setFilter(f.key)}
-                style={[styles.chip, active ? styles.chipActive : styles.chipIdle]}>
-                <Text style={[styles.chipText, { color: active ? '#fff' : Brand.text }]}>
-                  {f.label}
-                </Text>
-              </Pressable>
-            );
-          })}
+        <View style={styles.chipsBox}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator
+            contentContainerStyle={styles.chipsRow}
+            {...(Platform.OS === 'web' ? ({ dataSet: { thinbar: 'cat' } } as any) : {})}>
+            {filters.map((f) => {
+              const active = f.key === filter;
+              return (
+                <Pressable
+                  key={f.key}
+                  onPress={() => setFilter(f.key)}
+                  style={[styles.chip, active ? styles.chipActive : styles.chipIdle]}>
+                  <Text style={[styles.chipText, { color: active ? '#fff' : Brand.text }]}>
+                    {f.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
 
         <View style={styles.searchRow}>
@@ -171,7 +180,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1, paddingHorizontal: S.lg },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: S.sm },
   location: { fontSize: F.sub, color: Brand.textSub, fontWeight: '600' },
-  chipsRow: { marginTop: S.md, flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
+  chipsBox: { marginTop: S.md, height: 56 },
+  chipsRow: { flexDirection: 'row', gap: S.sm, alignItems: 'center', paddingRight: S.lg },
   chip: { paddingHorizontal: S.xl, height: 44, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center' },
   chipActive: { backgroundColor: Brand.green },
   chipIdle: { backgroundColor: '#E7EAEC' },
