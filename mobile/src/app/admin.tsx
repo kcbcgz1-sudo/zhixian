@@ -81,6 +81,12 @@ export default function AdminScreen() {
               <Text style={styles.navSub}>下架 / 恢复 / 删除</Text>
               <Ionicons name="chevron-forward" size={22} color={Brand.textFaint} />
             </Pressable>
+            <Pressable style={styles.nav} onPress={() => router.push('/admin-categories' as any)}>
+              <Ionicons name="pricetags-outline" size={24} color={Brand.text} />
+              <Text style={styles.navText}>分类管理</Text>
+              <Text style={styles.navSub}>新增 / 排序 / 权限</Text>
+              <Ionicons name="chevron-forward" size={22} color={Brand.textFaint} />
+            </Pressable>
             <Pressable style={styles.nav} onPress={() => router.push('/admin-users' as any)}>
               <Ionicons name="people-outline" size={24} color={Brand.text} />
               <Text style={styles.navText}>用户管理</Text>

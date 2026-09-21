@@ -170,3 +170,38 @@ export const adminPostDelete = (id: string) => authFetch(`/admin/posts/${id}`, {
 export const adminUsers = (): Promise<AdminUser[]> => authFetch('/admin/users');
 export const adminUserBan = (id: string) => authFetch(`/admin/users/${id}/ban`, { method: 'POST' });
 export const adminUserUnban = (id: string) => authFetch(`/admin/users/${id}/unban`, { method: 'POST' });
+
+// ── 관리자: 카테고리 관리 ──
+export type AdminCategory = {
+  id: string;
+  code: string;
+  name: string;
+  sort: number;
+  writeMinLevel: number;
+  commentMinLevel: number;
+  active: boolean;
+  posts: number;
+};
+export type CategoryInput = {
+  code?: string;
+  name?: string;
+  sort?: number;
+  writeMinLevel?: number;
+  commentMinLevel?: number;
+  active?: boolean;
+};
+export const adminCategories = (): Promise<AdminCategory[]> => authFetch('/admin/categories');
+export const adminCategoryCreate = (data: CategoryInput) =>
+  authFetch('/admin/categories', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+export const adminCategoryUpdate = (id: string, data: CategoryInput) =>
+  authFetch(`/admin/categories/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+export const adminCategoryDelete = (id: string) =>
+  authFetch(`/admin/categories/${id}`, { method: 'DELETE' });

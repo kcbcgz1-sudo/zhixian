@@ -1,4 +1,14 @@
-import { Controller, Delete, ForbiddenException, Get, Param, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { PostStatus } from '@prisma/client';
 import type { Request } from 'express';
 import { AuthService } from '../auth/auth.service.js';
@@ -65,5 +75,30 @@ export class AdminController {
   async del(@Param('id') id: string, @Req() req: Request) {
     await this.requireAdmin(req);
     return this.admin.deletePost(id);
+  }
+
+  // ── 카테고리 관리 ──
+  @Get('categories')
+  async categories(@Req() req: Request) {
+    await this.requireAdmin(req);
+    return this.admin.categoriesAll();
+  }
+
+  @Post('categories')
+  async createCategory(@Body() body: any, @Req() req: Request) {
+    await this.requireAdmin(req);
+    return this.admin.createCategory(body);
+  }
+
+  @Patch('categories/:id')
+  async updateCategory(@Param('id') id: string, @Body() body: any, @Req() req: Request) {
+    await this.requireAdmin(req);
+    return this.admin.updateCategory(id, body);
+  }
+
+  @Delete('categories/:id')
+  async deleteCategory(@Param('id') id: string, @Req() req: Request) {
+    await this.requireAdmin(req);
+    return this.admin.deleteCategory(id);
   }
 }
