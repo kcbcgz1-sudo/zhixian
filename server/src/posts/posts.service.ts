@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Category, PostStatus } from '@prisma/client';
+import { PostStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 export type MediaItem = { url: string; type: string };
@@ -11,8 +11,6 @@ export type CreatePostDto = {
   tags?: string[];
   media?: MediaItem[];
 };
-
-const CATEGORIES = ['fishing', 'hiking', 'stay'];
 
 function extractHashtags(body: string): string[] {
   const m = body.match(/#[^\s#]+/g) ?? [];
@@ -30,7 +28,7 @@ export class PostsService {
   async findAll(category?: string) {
     const isCat = category && category !== 'all';
     const posts = await this.prisma.post.findMany({
-      where: { status: PostStatus.published, ...(isCat ? { category: category as Category } : {}) },
+      where: { status: PostStatus.published, ...(isCat ? { category } : {}) },
       orderBy: [{ trustScore: 'desc' }, { createdAt: 'desc' }],
       include: { author: true },
     });
@@ -45,7 +43,8 @@ export class PostsService {
 
   async create(dto: CreatePostDto, authorId?: string | null) {
     const cat = String(dto.category);
-    if (!CATEGORIES.includes(cat)) throw new BadRequestException('bad category');
+    const catRow = await this.prisma.category.findFirst({ where: { code: cat, active: true } });
+    if (!catRow) throw new BadRequestException('bad category');
     if (!dto.title?.trim() || !dto.body?.trim())
       throw new BadRequestException('title/body required');
 
@@ -67,7 +66,7 @@ export class PostsService {
     const post = await this.prisma.post.create({
       data: {
         authorId: author.id,
-        category: cat as Category,
+        category: cat,
         title: dto.title.trim(),
         body,
         district: dto.district?.trim() || null,

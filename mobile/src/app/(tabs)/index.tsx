@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -16,15 +16,26 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
-import { fetchPosts } from '@/data/api';
-import { FILTERS, type Category, type Post } from '@/data/seed';
+import { fetchCategories, fetchPosts } from '@/data/api';
+import { type Category, type Post } from '@/data/seed';
 
 export default function HomeScreen() {
   const router = useRouter();
   const [filter, setFilter] = useState<Category | 'all'>('all');
+  const [filters, setFilters] = useState<{ key: string; label: string }[]>([
+    { key: 'all', label: '全部' },
+  ]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchCategories()
+      .then((cats) =>
+        setFilters([{ key: 'all', label: '全部' }, ...cats.map((c) => ({ key: c.code, label: c.name }))]),
+      )
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,7 +64,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.chipsRow}>
-          {FILTERS.map((f) => {
+          {filters.map((f) => {
             const active = f.key === filter;
             return (
               <Pressable

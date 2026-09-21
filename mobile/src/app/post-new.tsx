@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -17,9 +17,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
-import { createPost, uploadMedia } from '@/data/api';
+import { createPost, fetchCategories, uploadMedia, type ApiCategory } from '@/data/api';
 import { useAuth } from '@/data/auth';
-import { POST_CATEGORIES, type Category } from '@/data/seed';
+import { type Category } from '@/data/seed';
 
 type Asset = ImagePicker.ImagePickerAsset;
 
@@ -29,8 +29,18 @@ const DISTRICTS = ['天河', '越秀', '海珠', '荔湾', '白云', '黄埔', '
 export default function PostNewScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const [category, setCategory] = useState<Category>('fishing');
+  const [cats, setCats] = useState<ApiCategory[]>([]);
+  const [category, setCategory] = useState<Category>('');
   const [district, setDistrict] = useState('');
+
+  useEffect(() => {
+    fetchCategories()
+      .then((list) => {
+        setCats(list);
+        setCategory((prev) => prev || list[0]?.code || '');
+      })
+      .catch(() => {});
+  }, []);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -60,6 +70,10 @@ export default function PostNewScreen() {
     if (!user) {
       Alert.alert('请先登录', '发布前需要登录账号');
       router.push('/login' as any);
+      return;
+    }
+    if (!category) {
+      Alert.alert('提示', '请选择类型');
       return;
     }
     if (!title.trim() || !body.trim()) {
@@ -111,15 +125,15 @@ export default function PostNewScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Text style={styles.label}>类型</Text>
           <View style={styles.catRow}>
-            {POST_CATEGORIES.map((c) => {
-              const active = c.key === category;
+            {cats.map((c) => {
+              const active = c.code === category;
               return (
                 <Pressable
-                  key={c.key}
-                  onPress={() => setCategory(c.key)}
+                  key={c.code}
+                  onPress={() => setCategory(c.code)}
                   style={[styles.cat, active ? styles.catOn : styles.catOff]}>
                   <Text style={[styles.catText, { color: active ? '#fff' : Brand.text }]}>
-                    {c.label}
+                    {c.name}
                   </Text>
                 </Pressable>
               );
@@ -226,7 +240,7 @@ const styles = StyleSheet.create({
   submitText: { color: '#fff', fontSize: F.body, fontWeight: '700' },
   content: { padding: S.lg, gap: S.sm, paddingBottom: S.xxl },
   label: { fontSize: F.sub, fontWeight: '700', color: Brand.text, marginTop: S.md },
-  catRow: { flexDirection: 'row', gap: S.sm },
+  catRow: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
   cat: { paddingHorizontal: S.xl, paddingVertical: 10, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center' },
   catOn: { backgroundColor: Brand.green },
   catOff: { backgroundColor: '#E7EAEC' },

@@ -33,6 +33,20 @@ export async function fetchPost(id: string): Promise<Post> {
   return (await res.json()) as Post;
 }
 
+// ── 카테고리 ──
+export type ApiCategory = {
+  code: string;
+  name: string;
+  sort: number;
+  writeMinLevel: number;
+  commentMinLevel: number;
+};
+export async function fetchCategories(): Promise<ApiCategory[]> {
+  const res = await fetch(`${API_BASE}/categories`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as ApiCategory[];
+}
+
 // ── 업로드 ──
 export type UploadResult = { url: string; type: string };
 export async function uploadMedia(asset: {

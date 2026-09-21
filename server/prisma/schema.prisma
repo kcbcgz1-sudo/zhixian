@@ -8,12 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Category {
-  fishing // 钓鱼
-  hiking  // 登山徒步
-  stay    // 短租/乡居
-}
-
 enum PostStatus {
   reviewing // 审核中
   published // 已发布
@@ -46,11 +40,24 @@ model User {
   createdAt    DateTime      @default(now())
 }
 
+model Category {
+  id              String   @id @default(cuid())
+  code            String   @unique // 영문/숫자 식별자 (예: fishing) — Post.category 참조값
+  name            String   // 中文 표시명 (예: 钓鱼)
+  sort            Int      @default(0) // 출력순서 (오름차순)
+  writeMinLevel   Int      @default(1) // 글쓰기 최소 회원레벨
+  commentMinLevel Int      @default(1) // 댓글 최소 회원레벨
+  active          Boolean  @default(true) // 노출 여부(삭제 대신 숨김)
+  createdAt       DateTime @default(now())
+
+  @@index([active, sort])
+}
+
 model Post {
   id           String        @id @default(cuid())
   author       User          @relation(fields: [authorId], references: [id])
   authorId     String
-  category     Category
+  category     String        // Category.code 참조
   title        String
   body         String
   district     String?

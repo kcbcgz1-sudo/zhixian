@@ -1,12 +1,5 @@
-// 知闲 · 타입 + 필터. 데이터는 서버 API에서.
-export type Category = 'fishing' | 'hiking' | 'stay';
-
-export const FILTERS: { key: Category | 'all'; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'hiking', label: '登山' },
-  { key: 'fishing', label: '钓鱼' },
-  { key: 'stay', label: '短租' },
-];
+// 知闲 · 타입. 카테고리/데이터는 서버 API에서.
+export type Category = string; // Category.code (동적, 서버 관리)
 
 export type MediaItem = { url: string; type: string };
 
@@ -27,8 +20,3 @@ export type Post = {
   cover?: string | null;
   media?: MediaItem[];
 };
-
-export const POST_CATEGORIES: { key: Category; label: string }[] = [
-  { key: 'fishing', label: '钓鱼' },
-  { key: 'hiking', label: '登山徒步' },
-];
