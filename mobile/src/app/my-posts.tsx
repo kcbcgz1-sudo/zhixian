@@ -1,4 +1,4 @@
-// 知闲 · 我的发布 / 我的收藏
+// 知闲 · 我的发布 / 我的收藏 / 我的点赞
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,17 +17,27 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
-import { deletePost, fetchMyFavorites, fetchMyPosts } from '@/data/api';
+import { deletePost, fetchMyFavorites, fetchMyLikes, fetchMyPosts } from '@/data/api';
 import { useAuth } from '@/data/auth';
 import type { Post } from '@/data/seed';
 
 const STATUS_LABEL: Record<string, string> = { reviewing: '审核中', removed: '已下架' };
 
+type Mode = 'mine' | 'fav' | 'liked';
+const TITLE: Record<Mode, string> = { mine: '我的发布', fav: '我的收藏', liked: '我的点赞' };
+const NOUN: Record<Mode, string> = { mine: '发布', fav: '收藏', liked: '点赞' };
+const EMPTY: Record<Mode, string> = {
+  mine: '还没有发布内容',
+  fav: '还没有收藏的内容',
+  liked: '还没有点赞的内容',
+};
+
 export default function MyPostsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { type } = useLocalSearchParams<{ type?: string }>();
-  const isFav = type === 'fav';
+  const mode: Mode = type === 'fav' ? 'fav' : type === 'liked' ? 'liked' : 'mine';
+  const canDelete = mode === 'mine';
   const [list, setList] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +49,9 @@ export default function MyPostsScreen() {
     }
     setLoading(true);
     try {
-      setList(isFav ? await fetchMyFavorites() : await fetchMyPosts());
+      const fetcher =
+        mode === 'fav' ? fetchMyFavorites : mode === 'liked' ? fetchMyLikes : fetchMyPosts;
+      setList(await fetcher());
     } catch {
       setList([]);
     } finally {
@@ -48,7 +60,7 @@ export default function MyPostsScreen() {
   };
   useEffect(() => {
     load();
-  }, [user?.id, isFav]);
+  }, [user?.id, mode]);
 
   function confirmDelete(p: Post) {
     const run = async () => {
@@ -76,14 +88,14 @@ export default function MyPostsScreen() {
           <Pressable onPress={() => router.back()} hitSlop={10}>
             <Ionicons name="arrow-back" size={26} color={Brand.text} />
           </Pressable>
-          <Text style={styles.headerTitle}>{isFav ? '我的收藏' : '我的发布'}</Text>
+          <Text style={styles.headerTitle}>{TITLE[mode]}</Text>
           <View style={{ width: 26 }} />
         </View>
 
         {!user ? (
           <View style={styles.center}>
             <Ionicons name="lock-closed-outline" size={46} color={Brand.textFaint} />
-            <Text style={styles.loginMsg}>登录后查看{isFav ? '收藏' : '发布'}</Text>
+            <Text style={styles.loginMsg}>登录后查看{NOUN[mode]}</Text>
             <Pressable style={styles.loginBtn} onPress={() => router.push('/login' as any)}>
               <Text style={styles.loginBtnText}>去登录</Text>
             </Pressable>
@@ -116,16 +128,14 @@ export default function MyPostsScreen() {
                     </Text>
                   </View>
                 </Pressable>
-                {!isFav && (
+                {canDelete && (
                   <Pressable style={styles.delBtn} onPress={() => confirmDelete(p)} hitSlop={8}>
                     <Ionicons name="trash-outline" size={20} color={Brand.danger} />
                   </Pressable>
                 )}
               </View>
             ))}
-            {list.length === 0 && (
-              <Text style={styles.empty}>{isFav ? '还没有收藏的内容' : '还没有发布内容'}</Text>
-            )}
+            {list.length === 0 && <Text style={styles.empty}>{EMPTY[mode]}</Text>}
           </ScrollView>
         )}
       </SafeAreaView>

@@ -128,6 +128,11 @@ export async function fetchMyFavorites(): Promise<Post[]> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as Post[];
 }
+export async function fetchMyLikes(): Promise<Post[]> {
+  const res = await fetch(`${API_BASE}/posts/liked`, { headers: { ...authHeaders() } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as Post[];
+}
 export async function deletePost(postId: string): Promise<void> {
   const res = await fetch(`${API_BASE}/posts/${postId}`, {
     method: 'DELETE',

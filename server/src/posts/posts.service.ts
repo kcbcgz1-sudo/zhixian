@@ -121,6 +121,23 @@ export class PostsService {
     return this.shapeList(posts, userId);
   }
 
+  async myLikes(userId?: string | null) {
+    if (!userId) throw new ForbiddenException('请先登录');
+    const likes = await this.prisma.interaction.findMany({
+      where: { userId, type: InteractionType.like },
+      orderBy: { createdAt: 'desc' },
+    });
+    const ids = likes.map((f) => f.postId);
+    if (!ids.length) return [];
+    const posts = await this.prisma.post.findMany({
+      where: { id: { in: ids }, status: PostStatus.published },
+      include: { author: true },
+    });
+    const order = new Map(ids.map((id, i) => [id, i]));
+    posts.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    return this.shapeList(posts, userId);
+  }
+
   async deleteOwnPost(postId: string, userId?: string | null) {
     if (!userId) throw new ForbiddenException('请先登录');
     const post = await this.prisma.post.findUnique({ where: { id: postId } });

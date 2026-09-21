@@ -28,6 +28,12 @@ export class PostsController {
     return this.posts.myFavorites(uid);
   }
 
+  @Get('liked')
+  liked(@Req() req: Request) {
+    const uid = this.auth.verifyToken(req.headers['authorization']);
+    return this.posts.myLikes(uid);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @Req() req: Request) {
     const uid = this.auth.verifyToken(req.headers['authorization']);
