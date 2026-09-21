@@ -34,29 +34,106 @@ export class PostsService {
     private readonly levels: LevelsService,
   ) {}
 
-  async findAll(category?: string) {
+  async findAll(category?: string, userId?: string | null) {
     const isCat = category && category !== 'all';
     const posts = await this.prisma.post.findMany({
       where: { status: PostStatus.published, ...(isCat ? { category } : {}) },
       orderBy: [{ trustScore: 'desc' }, { createdAt: 'desc' }],
       include: { author: true },
     });
-    const counts = await this.prisma.interaction.groupBy({
-      by: ['postId'],
-      where: { type: InteractionType.comment, postId: { in: posts.map((p) => p.id) } },
+    const ids = posts.map((p) => p.id);
+    const grouped = await this.prisma.interaction.groupBy({
+      by: ['postId', 'type'],
+      where: { postId: { in: ids } },
       _count: { _all: true },
     });
-    const cmap = new Map<string, number>(counts.map((c: any) => [c.postId, c._count._all]));
-    return posts.map((p) => this.shape(p, cmap.get(p.id) ?? 0));
+    const cmap = new Map<string, number>();
+    const lmap = new Map<string, number>();
+    const fmap = new Map<string, number>();
+    for (const g of grouped as any[]) {
+      const m =
+        g.type === InteractionType.comment
+          ? cmap
+          : g.type === InteractionType.like
+            ? lmap
+            : g.type === InteractionType.favorite
+              ? fmap
+              : null;
+      if (m) m.set(g.postId, g._count._all);
+    }
+    const likedSet = new Set<string>();
+    const favSet = new Set<string>();
+    if (userId) {
+      const mine = await this.prisma.interaction.findMany({
+        where: {
+          userId,
+          postId: { in: ids },
+          type: { in: [InteractionType.like, InteractionType.favorite] },
+        },
+      });
+      for (const m of mine) {
+        if (m.type === InteractionType.like) likedSet.add(m.postId);
+        else if (m.type === InteractionType.favorite) favSet.add(m.postId);
+      }
+    }
+    return posts.map((p) =>
+      this.shape(p, {
+        comments: cmap.get(p.id) ?? 0,
+        likes: lmap.get(p.id) ?? 0,
+        favorites: fmap.get(p.id) ?? 0,
+        liked: likedSet.has(p.id),
+        favorited: favSet.has(p.id),
+      }),
+    );
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId?: string | null) {
     const post = await this.prisma.post.findUnique({ where: { id }, include: { author: true } });
     if (!post) throw new NotFoundException('post not found');
-    const cnt = await this.prisma.interaction.count({
-      where: { postId: id, type: InteractionType.comment },
-    });
-    return this.shape(post, cnt);
+    const [comments, likes, favorites] = await Promise.all([
+      this.prisma.interaction.count({ where: { postId: id, type: InteractionType.comment } }),
+      this.prisma.interaction.count({ where: { postId: id, type: InteractionType.like } }),
+      this.prisma.interaction.count({ where: { postId: id, type: InteractionType.favorite } }),
+    ]);
+    let liked = false;
+    let favorited = false;
+    if (userId) {
+      const mine = await this.prisma.interaction.findMany({
+        where: {
+          postId: id,
+          userId,
+          type: { in: [InteractionType.like, InteractionType.favorite] },
+        },
+      });
+      liked = mine.some((m) => m.type === InteractionType.like);
+      favorited = mine.some((m) => m.type === InteractionType.favorite);
+    }
+    return this.shape(post, { comments, likes, favorites, liked, favorited });
+  }
+
+  // ── 좋아요 / 수집 ──
+  private async toggle(postId: string, userId: string | null | undefined, type: InteractionType) {
+    if (!userId) throw new ForbiddenException('请先登录');
+    const post = await this.prisma.post.findUnique({ where: { id: postId } });
+    if (!post) throw new NotFoundException('post not found');
+    const existing = await this.prisma.interaction.findFirst({ where: { postId, userId, type } });
+    if (existing) {
+      await this.prisma.interaction.delete({ where: { id: existing.id } });
+    } else {
+      await this.prisma.interaction.create({ data: { postId, userId, type } });
+    }
+    const count = await this.prisma.interaction.count({ where: { postId, type } });
+    return { on: !existing, count };
+  }
+
+  async like(postId: string, userId?: string | null) {
+    const r = await this.toggle(postId, userId, InteractionType.like);
+    return { liked: r.on, likes: r.count };
+  }
+
+  async favorite(postId: string, userId?: string | null) {
+    const r = await this.toggle(postId, userId, InteractionType.favorite);
+    return { favorited: r.on, favorites: r.count };
   }
 
   // ── 댓글 ──
@@ -153,7 +230,16 @@ export class PostsService {
     return this.shape(post);
   }
 
-  private shape(p: any, commentCount = 0) {
+  private shape(
+    p: any,
+    x: {
+      comments?: number;
+      likes?: number;
+      favorites?: number;
+      liked?: boolean;
+      favorited?: boolean;
+    } = {},
+  ) {
     const a = (p.attributes ?? {}) as Record<string, any>;
     const d: Date = p.publishedAt ?? p.createdAt;
     const media: MediaItem[] = Array.isArray(a.media) ? a.media : [];
@@ -166,8 +252,11 @@ export class PostsService {
       excerpt: makeExcerpt(p.body),
       author: p.author?.nickname ?? '',
       authorTitle: a.authorTitle ?? '',
-      comments: commentCount,
-      likes: a.likes != null ? String(a.likes) : '0',
+      comments: x.comments ?? 0,
+      likes: String(x.likes ?? 0),
+      favorites: x.favorites ?? 0,
+      liked: x.liked ?? false,
+      favorited: x.favorited ?? false,
       date: d.toISOString().slice(0, 10).replace(/-/g, '.'),
       body: p.body,
       aiImage: a.aiImage === true,

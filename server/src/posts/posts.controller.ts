@@ -11,13 +11,15 @@ export class PostsController {
   ) {}
 
   @Get()
-  findAll(@Query('category') category?: string) {
-    return this.posts.findAll(category);
+  findAll(@Req() req: Request, @Query('category') category?: string) {
+    const uid = this.auth.verifyToken(req.headers['authorization']);
+    return this.posts.findAll(category, uid);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.posts.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: Request) {
+    const uid = this.auth.verifyToken(req.headers['authorization']);
+    return this.posts.findOne(id, uid);
   }
 
   @Post()
@@ -35,5 +37,17 @@ export class PostsController {
   addComment(@Param('id') id: string, @Body() body: { content?: string }, @Req() req: Request) {
     const uid = this.auth.verifyToken(req.headers['authorization']);
     return this.posts.addComment(id, body?.content ?? '', uid);
+  }
+
+  @Post(':id/like')
+  like(@Param('id') id: string, @Req() req: Request) {
+    const uid = this.auth.verifyToken(req.headers['authorization']);
+    return this.posts.like(id, uid);
+  }
+
+  @Post(':id/favorite')
+  favorite(@Param('id') id: string, @Req() req: Request) {
+    const uid = this.auth.verifyToken(req.headers['authorization']);
+    return this.posts.favorite(id, uid);
   }
 }

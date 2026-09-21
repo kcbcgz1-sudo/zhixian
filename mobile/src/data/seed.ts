@@ -14,6 +14,9 @@ export type Post = {
   authorTitle: string;
   comments: number;
   likes: string;
+  favorites?: number;
+  liked?: boolean;
+  favorited?: boolean;
   date: string;
   body: string;
   aiImage: boolean;

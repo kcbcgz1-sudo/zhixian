@@ -23,12 +23,12 @@ async function authFetch(path: string, opts: RequestInit = {}): Promise<any> {
 // ── 게시글 ──
 export async function fetchPosts(category: Category | 'all'): Promise<Post[]> {
   const url = category === 'all' ? `${API_BASE}/posts` : `${API_BASE}/posts?category=${category}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: { ...authHeaders() } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as Post[];
 }
 export async function fetchPost(id: string): Promise<Post> {
-  const res = await fetch(`${API_BASE}/posts/${id}`);
+  const res = await fetch(`${API_BASE}/posts/${id}`, { headers: { ...authHeaders() } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as Post;
 }
@@ -116,6 +116,26 @@ export async function createComment(postId: string, content: string): Promise<Co
   });
   if (!res.ok) throw new Error(await parseError(res, '评论失败'));
   return (await res.json()) as Comment;
+}
+
+// ── 좋아요 / 수집 ──
+export async function toggleLike(postId: string): Promise<{ liked: boolean; likes: number }> {
+  const res = await fetch(`${API_BASE}/posts/${postId}/like`, {
+    method: 'POST',
+    headers: { ...authHeaders() },
+  });
+  if (!res.ok) throw new Error(await parseError(res, '操作失败'));
+  return res.json();
+}
+export async function toggleFavorite(
+  postId: string,
+): Promise<{ favorited: boolean; favorites: number }> {
+  const res = await fetch(`${API_BASE}/posts/${postId}/favorite`, {
+    method: 'POST',
+    headers: { ...authHeaders() },
+  });
+  if (!res.ok) throw new Error(await parseError(res, '操作失败'));
+  return res.json();
 }
 
 // ── 인증 ──

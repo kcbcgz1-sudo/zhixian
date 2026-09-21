@@ -18,7 +18,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
-import { createComment, fetchCategories, fetchComments, fetchPost, type Comment } from '@/data/api';
+import {
+  createComment,
+  fetchCategories,
+  fetchComments,
+  fetchPost,
+  toggleFavorite,
+  toggleLike,
+  type Comment,
+} from '@/data/api';
 import { useAuth } from '@/data/auth';
 import type { Post } from '@/data/seed';
 
@@ -29,6 +37,9 @@ export default function PostDetail() {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
+  const [favorited, setFavorited] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [favCount, setFavCount] = useState(0);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState('');
   const [sending, setSending] = useState(false);
@@ -39,7 +50,13 @@ export default function PostDetail() {
     (async () => {
       try {
         const p = await fetchPost(id ?? '');
-        if (alive) setPost(p);
+        if (alive) {
+          setPost(p);
+          setLiked(!!p.liked);
+          setFavorited(!!p.favorited);
+          setLikeCount(Number(p.likes) || 0);
+          setFavCount(p.favorites ?? 0);
+        }
         try {
           const cats = await fetchCategories();
           const cat = cats.find((c) => c.code === p.category);
@@ -80,6 +97,42 @@ export default function PostDetail() {
       Alert.alert('评论失败', String(e?.message ?? '请重试'));
     } finally {
       setSending(false);
+    }
+  }
+
+  async function onLike() {
+    if (!user) {
+      router.push('/login' as any);
+      return;
+    }
+    const next = !liked;
+    setLiked(next);
+    setLikeCount((c) => Math.max(0, c + (next ? 1 : -1)));
+    try {
+      const r = await toggleLike(id ?? '');
+      setLiked(r.liked);
+      setLikeCount(r.likes);
+    } catch {
+      setLiked(!next);
+      setLikeCount((c) => Math.max(0, c + (next ? -1 : 1)));
+    }
+  }
+
+  async function onFavorite() {
+    if (!user) {
+      router.push('/login' as any);
+      return;
+    }
+    const next = !favorited;
+    setFavorited(next);
+    setFavCount((c) => Math.max(0, c + (next ? 1 : -1)));
+    try {
+      const r = await toggleFavorite(id ?? '');
+      setFavorited(r.favorited);
+      setFavCount(r.favorites);
+    } catch {
+      setFavorited(!next);
+      setFavCount((c) => Math.max(0, c + (next ? -1 : 1)));
     }
   }
 
@@ -184,12 +237,21 @@ export default function PostDetail() {
                 <Ionicons name="ban-outline" size={26} color={Brand.textSub} />
               </Pressable>
               <View style={styles.actionRight}>
-                <Pressable onPress={() => setLiked((v) => !v)} hitSlop={8}>
+                <Pressable style={styles.actionItem} onPress={onFavorite} hitSlop={8}>
+                  <Ionicons
+                    name={favorited ? 'bookmark' : 'bookmark-outline'}
+                    size={25}
+                    color={favorited ? Brand.green : Brand.textSub}
+                  />
+                  {favCount > 0 && <Text style={styles.actionCount}>{favCount}</Text>}
+                </Pressable>
+                <Pressable style={styles.actionItem} onPress={onLike} hitSlop={8}>
                   <Ionicons
                     name={liked ? 'heart' : 'heart-outline'}
                     size={28}
                     color={liked ? Brand.green : Brand.textSub}
                   />
+                  {likeCount > 0 && <Text style={styles.actionCount}>{likeCount}</Text>}
                 </Pressable>
                 <Pressable hitSlop={8}>
                   <Ionicons name="share-social-outline" size={26} color={Brand.textSub} />
@@ -248,6 +310,8 @@ const styles = StyleSheet.create({
     borderTopColor: Brand.border,
   },
   actionRight: { flexDirection: 'row', alignItems: 'center', gap: S.xl },
+  actionItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  actionCount: { fontSize: F.small, color: Brand.textSub, fontWeight: '600' },
   commentsSection: {
     marginTop: S.xl,
     borderTopWidth: StyleSheet.hairlineWidth,

@@ -166,7 +166,11 @@ function PostCard({ post, onPress }: { post: Post; onPress: () => void }) {
             <Text style={styles.metaText}>{post.comments}</Text>
           </View>
           <View style={styles.metaItem}>
-            <Ionicons name="heart-outline" size={16} color={Brand.textSub} />
+            <Ionicons
+              name={post.liked ? 'heart' : 'heart-outline'}
+              size={16}
+              color={post.liked ? Brand.green : Brand.textSub}
+            />
             <Text style={styles.metaText}>{post.likes}</Text>
           </View>
         </View>
