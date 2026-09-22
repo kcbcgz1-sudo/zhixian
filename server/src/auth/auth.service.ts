@@ -15,6 +15,7 @@ export type PublicUser = {
   email: string | null;
   nickname: string;
   city: string;
+  province: string;
   points: number;
   level: number;
   title: string;
@@ -38,6 +39,7 @@ export class AuthService implements OnModuleInit {
             passwordHash: bcrypt.hashSync('1234', 10),
             nickname: '管理员',
             city: '广州',
+            province: '广东',
             role: 'admin',
           },
         });
@@ -57,6 +59,7 @@ export class AuthService implements OnModuleInit {
       email: u.email ?? null,
       nickname: u.nickname,
       city: u.city,
+      province: u.province ?? '广东',
       points: u.points,
       level: u.level,
       title: lt?.name ?? '',
@@ -81,7 +84,7 @@ export class AuthService implements OnModuleInit {
     }
   }
 
-  async register(dto: { username: string; email: string; password: string; nickname?: string }) {
+  async register(dto: { username: string; email: string; password: string; nickname?: string; province?: string; city?: string }) {
     const username = dto.username?.trim();
     const email = dto.email?.trim().toLowerCase();
     if (!username || !email || !dto.password) throw new BadRequestException('缺少必填项');
@@ -94,7 +97,8 @@ export class AuthService implements OnModuleInit {
         email,
         passwordHash: bcrypt.hashSync(dto.password, 10),
         nickname: dto.nickname?.trim() || username,
-        city: '广州',
+        city: dto.city?.trim() || '广州',
+        province: dto.province?.trim() || '广东',
       },
     });
     return { token: this.sign(user.id), user: await this.publicUser(user) };

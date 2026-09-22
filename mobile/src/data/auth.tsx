@@ -8,7 +8,7 @@ type AuthContextType = {
   user: PublicUser | null;
   loading: boolean;
   login: (account: string, password: string) => Promise<void>;
-  register: (d: { username: string; email: string; password: string; nickname?: string }) => Promise<void>;
+  register: (d: { username: string; email: string; password: string; nickname?: string; province?: string; city?: string }) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const r = await authLogin({ account, password });
     await persist(r.token, r.user);
   };
-  const register = async (d: { username: string; email: string; password: string; nickname?: string }) => {
+  const register = async (d: { username: string; email: string; password: string; nickname?: string; province?: string; city?: string }) => {
     const r = await authRegister(d);
     await persist(r.token, r.user);
   };

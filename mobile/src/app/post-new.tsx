@@ -22,18 +22,18 @@ import { injectThinBar } from '@/constants/thinbar';
 import { createPost, fetchCategories, uploadMedia, type ApiCategory } from '@/data/api';
 import { useAuth } from '@/data/auth';
 import { type Category } from '@/data/seed';
+import RegionInline from '@/components/region-inline';
+import { DEFAULT_CITY, DEFAULT_PROVINCE } from '@/constants/regions';
 
 type Asset = ImagePicker.ImagePickerAsset;
-
-// 광저우 11개 구 (지역 선택)
-const DISTRICTS = ['天河', '越秀', '海珠', '荔湾', '白云', '黄埔', '番禺', '花都', '南沙', '从化', '增城'];
 
 export default function PostNewScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [cats, setCats] = useState<ApiCategory[]>([]);
   const [category, setCategory] = useState<Category>('');
-  const [district, setDistrict] = useState('');
+  const [province, setProvince] = useState(DEFAULT_PROVINCE);
+  const [city, setCity] = useState(DEFAULT_CITY);
 
   useEffect(() => {
     fetchCategories()
@@ -44,6 +44,12 @@ export default function PostNewScreen() {
       .catch(() => {});
   }, []);
   useEffect(() => injectThinBar(), []);
+  useEffect(() => {
+    if (user) {
+      if (user.city) setCity(user.city);
+      if (user.province) setProvince(user.province);
+    }
+  }, [user?.id]);
   // 선택된 카테고리가 레벨 부족이면 발제 가능한 첫 카테고리로 전환
   useEffect(() => {
     if (!cats.length || !user || user.role === 'admin') return;
@@ -103,7 +109,8 @@ export default function PostNewScreen() {
         category,
         title: title.trim(),
         body: body.trim(),
-        district: district || undefined,
+        province,
+        city,
         media,
       });
       setDone(true);
@@ -170,20 +177,8 @@ export default function PostNewScreen() {
             </ScrollView>
           </View>
 
-          <Text style={styles.label}>地区（广州）</Text>
-          <View style={styles.distWrap}>
-            {DISTRICTS.map((d) => {
-              const active = d === district;
-              return (
-                <Pressable
-                  key={d}
-                  onPress={() => setDistrict(active ? '' : d)}
-                  style={[styles.dist, active ? styles.distOn : styles.distOff]}>
-                  <Text style={[styles.distText, { color: active ? '#fff' : Brand.text }]}>{d}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <Text style={styles.label}>所在地区</Text>
+          <RegionInline province={province} city={city} onChange={(p, c) => { setProvince(p); setCity(c); }} />
 
           <Text style={styles.label}>标题</Text>
           <TextInput

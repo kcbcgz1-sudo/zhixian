@@ -8,6 +8,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
 import { useAuth } from '@/data/auth';
+import RegionInline from '@/components/region-inline';
+import { DEFAULT_CITY, DEFAULT_PROVINCE } from '@/constants/regions';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -16,6 +18,8 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
+  const [province, setProvince] = useState(DEFAULT_PROVINCE);
+  const [city, setCity] = useState(DEFAULT_CITY);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [welcome, setWelcome] = useState<string | null>(null); // 성공 시 표시할 이름
@@ -38,6 +42,8 @@ export default function RegisterScreen() {
         email: email.trim(),
         password,
         nickname: nickname.trim() || undefined,
+        province,
+        city,
       });
       setWelcome(name); // 이미 로그인 상태 → 환영 오버레이
     } catch (e: any) {
@@ -74,6 +80,9 @@ export default function RegisterScreen() {
         <Text style={styles.label}>昵称 (选填)</Text>
         <TextInput value={nickname} onChangeText={setNickname} placeholder="显示名称，不填则用用户名"
           placeholderTextColor={Brand.textFaint} style={styles.input} />
+
+        <Text style={styles.label}>所在地区</Text>
+        <RegionInline province={province} city={city} onChange={(p, c) => { setProvince(p); setCity(c); }} />
 
         {err ? <Text style={styles.err}>{err}</Text> : null}
 

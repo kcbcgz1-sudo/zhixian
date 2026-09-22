@@ -21,11 +21,12 @@ async function authFetch(path: string, opts: RequestInit = {}): Promise<any> {
 }
 
 // ── 게시글 ──
-export async function fetchPosts(category: Category | 'all', limit?: number, offset?: number): Promise<Post[]> {
+export async function fetchPosts(category: Category | 'all', limit?: number, offset?: number, city?: string): Promise<Post[]> {
   const p = new URLSearchParams();
   if (category !== 'all') p.set('category', String(category));
   if (limit != null) p.set('limit', String(limit));
   if (offset != null) p.set('offset', String(offset));
+  if (city) p.set('city', city);
   const qs = p.toString();
   const url = `${API_BASE}/posts${qs ? `?${qs}` : ''}`;
   const res = await fetch(url, { headers: { ...authHeaders() } });
@@ -86,7 +87,8 @@ export type NewPost = {
   category: Category;
   title: string;
   body: string;
-  district?: string;
+  province?: string;
+  city?: string;
   tags?: string[];
   media?: { url: string; type: string }[];
 };
@@ -192,6 +194,7 @@ export type PublicUser = {
   email: string | null;
   nickname: string;
   city: string;
+  province: string;
   points: number;
   level: number;
   title: string;
@@ -212,6 +215,8 @@ export async function authRegister(data: {
   email: string;
   password: string;
   nickname?: string;
+  province?: string;
+  city?: string;
 }): Promise<{ token: string; user: PublicUser }> {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',

@@ -18,6 +18,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
 import { injectThinBar } from '@/constants/thinbar';
+import { DEFAULT_CITY, DEFAULT_PROVINCE } from '@/constants/regions';
+import RegionModal from '@/components/region-modal';
 import { deletePost, fetchCategories, fetchPosts } from '@/data/api';
 import { useAuth } from '@/data/auth';
 import { type Category, type Post } from '@/data/seed';
@@ -37,6 +39,9 @@ export default function HomeScreen() {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [province, setProvince] = useState(DEFAULT_PROVINCE);
+  const [city, setCity] = useState(DEFAULT_CITY);
+  const [cityModal, setCityModal] = useState(false);
 
   useEffect(() => {
     fetchCategories()
@@ -46,12 +51,18 @@ export default function HomeScreen() {
       .catch(() => {});
   }, []);
   useEffect(() => injectThinBar(), []);
+  useEffect(() => {
+    if (user) {
+      if (user.city) setCity(user.city);
+      if (user.province) setProvince(user.province);
+    }
+  }, [user?.id]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchPosts(filter, PAGE_SIZE, 0);
+      const data = await fetchPosts(filter, PAGE_SIZE, 0, city);
       setPosts(data);
       setOffset(data.length);
       setHasMore(data.length === PAGE_SIZE);
@@ -60,13 +71,13 @@ export default function HomeScreen() {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, city]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore || loading) return;
     setLoadingMore(true);
     try {
-      const data = await fetchPosts(filter, PAGE_SIZE, offset);
+      const data = await fetchPosts(filter, PAGE_SIZE, offset, city);
       setPosts((prev) => [...prev, ...data]);
       setOffset((prev) => prev + data.length);
       setHasMore(data.length === PAGE_SIZE);
@@ -75,7 +86,7 @@ export default function HomeScreen() {
     } finally {
       setLoadingMore(false);
     }
-  }, [filter, offset, hasMore, loadingMore, loading]);
+  }, [filter, city, offset, hasMore, loadingMore, loading]);
 
   useFocusEffect(
     useCallback(() => {
@@ -106,8 +117,11 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.safe}>
         <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={16} color={Brand.textSub} />
-          <Text style={styles.location}>广州</Text>
+          <Pressable style={styles.locBtn} onPress={() => setCityModal(true)} hitSlop={8}>
+            <Ionicons name="location-outline" size={16} color={Brand.textSub} />
+            <Text style={styles.location}>{province}·{city}</Text>
+            <Ionicons name="chevron-down" size={14} color={Brand.textSub} />
+          </Pressable>
           <View style={{ flex: 1 }} />
           <Pressable onPress={() => router.push('/search' as any)} hitSlop={10}>
             <Ionicons name="search" size={22} color={Brand.text} />
@@ -170,6 +184,16 @@ export default function HomeScreen() {
           </ScrollView>
         )}
       </SafeAreaView>
+      <RegionModal
+        visible={cityModal}
+        province={province}
+        city={city}
+        onClose={() => setCityModal(false)}
+        onSelect={(p, c) => {
+          setProvince(p);
+          setCity(c);
+        }}
+      />
     </View>
   );
 }
@@ -243,6 +267,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, paddingHorizontal: S.lg },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: S.sm },
   location: { fontSize: F.sub, color: Brand.textSub, fontWeight: '600' },
+  locBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   chipsBox: { marginTop: S.md, height: 62 },
   chipsRow: { flexDirection: 'row', gap: S.sm, alignItems: 'flex-start', paddingRight: S.lg },
   chip: { paddingHorizontal: S.xl, height: 44, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center' },

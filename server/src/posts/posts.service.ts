@@ -14,7 +14,8 @@ export type CreatePostDto = {
   category: string;
   title: string;
   body: string;
-  district?: string;
+  province?: string;
+  city?: string;
   tags?: string[];
   media?: MediaItem[];
 };
@@ -86,11 +87,12 @@ export class PostsService {
     );
   }
 
-  async findAll(category?: string, userId?: string | null, q?: string, limit?: number, offset?: number) {
+  async findAll(category?: string, userId?: string | null, q?: string, limit?: number, offset?: number, city?: string) {
     const isCat = category && category !== 'all';
     const kw = q?.trim();
     const where: any = { status: PostStatus.published };
     if (isCat) where.category = category;
+    if (city && city.trim()) where.city = city.trim();
     if (kw) {
       where.OR = [
         { title: { contains: kw, mode: 'insensitive' } },
@@ -352,7 +354,8 @@ export class PostsService {
         category: cat,
         title: dto.title.trim(),
         body,
-        district: dto.district?.trim() || null,
+        province: dto.province?.trim() || (author as any).province || '广东',
+        city: dto.city?.trim() || author.city || '广州',
         attributes: { tags, media, cover, authorTitle, aiImage: false },
         isQuality: false,
         qualityScore: media.length > 0 ? 30 : 0,
@@ -384,7 +387,8 @@ export class PostsService {
       id: p.id,
       category: p.category,
       title: p.title,
-      district: p.district ?? null,
+      city: p.city ?? null,
+      province: p.province ?? null,
       tags: Array.isArray(a.tags) ? a.tags : [],
       excerpt: makeExcerpt(p.body),
       author: p.author?.nickname ?? '',

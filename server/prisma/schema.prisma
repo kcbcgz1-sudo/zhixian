@@ -30,6 +30,7 @@ model User {
   nickname     String
   avatar       String?
   city         String        @default("广州")
+  province     String        @default("广东")
   points       Int           @default(0)
   level        Int           @default(1)
   status       String        @default("active") // active/limited/banned
@@ -72,6 +73,8 @@ model Post {
   title        String
   body         String
   district     String?
+  province     String?
+  city         String?
   locationPoi  String?
   attributes   Json          @default("{}") // 垂类 전용 필드 + 표시용(tags/authorTitle/aiImage 등)
   warnTips     String?
