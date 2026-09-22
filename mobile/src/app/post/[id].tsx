@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -28,6 +29,7 @@ import {
   fetchPost,
   toggleFavorite,
   toggleLike,
+  sendDm,
   type Comment,
 } from '@/data/api';
 import { useAuth } from '@/data/auth';
@@ -47,6 +49,9 @@ export default function PostDetail() {
   const [commentText, setCommentText] = useState('');
   const [sending, setSending] = useState(false);
   const [commentMinLevel, setCommentMinLevel] = useState(1);
+  const [dmOpen, setDmOpen] = useState(false);
+  const [dmText, setDmText] = useState('');
+  const [dmSending, setDmSending] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -83,6 +88,25 @@ export default function PostDetail() {
   }, [id]);
 
   const canComment = !user || user.role === 'admin' || user.level >= commentMinLevel;
+
+  async function submitDm() {
+    const text = dmText.trim();
+    if (!text || !post?.authorId) return;
+    setDmSending(true);
+    try {
+      await sendDm(post.authorId, text);
+      setDmOpen(false);
+      setDmText('');
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.alert('私信已发送');
+      else Alert.alert('已发送', '私信已发送');
+    } catch (e: any) {
+      const m = String(e?.message ?? '发送失败');
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.alert(m);
+      else Alert.alert('发送失败', m);
+    } finally {
+      setDmSending(false);
+    }
+  }
 
   async function sendComment() {
     if (!user) {
@@ -308,6 +332,12 @@ export default function PostDetail() {
                   />
                   <Text style={[styles.actionLabel, liked && styles.actionLabelOn]}>{likeCount > 0 ? `赞 ${likeCount}` : '赞'}</Text>
                 </Pressable>
+                {!post?.mine && !!user && !!post?.authorId && (
+                  <Pressable style={styles.actionItem} onPress={() => setDmOpen(true)} hitSlop={8}>
+                    <Ionicons name="paper-plane-outline" size={24} color={Brand.textSub} />
+                    <Text style={styles.actionLabel}>私信</Text>
+                  </Pressable>
+                )}
                 <Pressable style={styles.actionItem} hitSlop={8}>
                   <Ionicons name="share-social-outline" size={26} color={Brand.textSub} />
                   <Text style={styles.actionLabel}>分享</Text>
@@ -317,6 +347,31 @@ export default function PostDetail() {
           </>
         )}
       </SafeAreaView>
+      <Modal visible={dmOpen} transparent animationType="fade" onRequestClose={() => setDmOpen(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '100%', maxWidth: 360, gap: 12 }}>
+            <Text style={{ fontSize: 17, fontWeight: '800', color: Brand.text }}>私信 {post?.author}</Text>
+            <TextInput
+              style={{ borderWidth: 1, borderColor: Brand.border, borderRadius: 10, padding: 12, minHeight: 100, fontSize: 15, color: Brand.text, backgroundColor: '#fff' }}
+              value={dmText}
+              onChangeText={setDmText}
+              placeholder="写下要发送的私信…"
+              placeholderTextColor={Brand.textFaint}
+              multiline
+              textAlignVertical="top"
+              maxLength={300}
+            />
+            <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'flex-end' }}>
+              <Pressable onPress={() => setDmOpen(false)} style={{ paddingHorizontal: 18, paddingVertical: 10, borderRadius: 8, backgroundColor: '#E7EAEC' }}>
+                <Text style={{ color: Brand.text, fontWeight: '700' }}>取消</Text>
+              </Pressable>
+              <Pressable onPress={submitDm} disabled={dmSending} style={{ paddingHorizontal: 18, paddingVertical: 10, borderRadius: 8, backgroundColor: Brand.green, opacity: dmSending ? 0.6 : 1 }}>
+                <Text style={{ color: '#fff', fontWeight: '800' }}>发送</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

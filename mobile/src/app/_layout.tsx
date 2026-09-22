@@ -23,6 +23,7 @@ export default function RootLayout() {
         <Stack.Screen name="admin-categories" />
         <Stack.Screen name="admin-levels" />
         <Stack.Screen name="admin-points" />
+        <Stack.Screen name="admin-notify" />
         <Stack.Screen name="admin-users" />
       </Stack>
       <BrandSplash />

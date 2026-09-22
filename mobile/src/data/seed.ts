@@ -19,6 +19,7 @@ export type Post = {
   favorited?: boolean;
   mine?: boolean;
   status?: string;
+  authorId?: string;
   date: string;
   body: string;
   aiImage: boolean;

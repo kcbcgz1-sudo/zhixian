@@ -415,6 +415,7 @@ export class PostsService {
     const media: MediaItem[] = Array.isArray(a.media) ? a.media : [];
     return {
       id: p.id,
+      authorId: p.authorId ?? null,
       category: p.category,
       title: p.title,
       city: p.city ?? null,

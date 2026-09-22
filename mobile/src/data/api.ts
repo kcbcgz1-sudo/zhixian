@@ -343,6 +343,42 @@ export const adminLevelSet = (level: number, name: string, minPoints: number) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, minPoints }),
   });
+export type AppNotification = {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  actorName: string;
+  postId: string | null;
+  read: boolean;
+  date: string;
+};
+export const fetchNotifications = (limit?: number, offset?: number): Promise<AppNotification[]> => {
+  const p = new URLSearchParams();
+  if (limit != null) p.set('limit', String(limit));
+  if (offset != null) p.set('offset', String(offset));
+  const qs = p.toString();
+  return authFetch(`/notifications${qs ? `?${qs}` : ''}`);
+};
+export const notifUnreadCount = (): Promise<{ count: number }> => authFetch('/notifications/unread-count');
+export const notifMarkRead = (id: string) => authFetch(`/notifications/${id}/read`, { method: 'POST' });
+export const notifMarkAll = () => authFetch('/notifications/read-all', { method: 'POST' });
+export const sendDm = (toUserId: string, body: string) =>
+  authFetch('/notifications/dm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ toUserId, body }),
+  });
+export const adminBroadcast = (
+  body: string,
+  title?: string,
+  userId?: string,
+): Promise<{ ok: boolean; count: number }> =>
+  authFetch('/admin/broadcast', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body, title, userId }),
+  });
 export const adminLevelSetName = (level: number, name: string) =>
   authFetch(`/admin/levels/${level}`, {
     method: 'POST',
