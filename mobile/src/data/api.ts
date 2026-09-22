@@ -248,6 +248,8 @@ export type AdminPost = {
   status: string;
   author: string;
   cover: string | null;
+  likes: number;
+  isQuality: boolean;
   createdAt: string;
 };
 export type AdminUser = {
@@ -314,6 +316,28 @@ export const adminCategoryDelete = (id: string) =>
 
 // ── 관리자: 레벨 칭호 ──
 export const adminLevels = (): Promise<LevelTitle[]> => authFetch('/admin/levels');
+export type PointConfig = Record<string, number>;
+export const adminPointConfig = (): Promise<PointConfig> => authFetch('/admin/point-config');
+export const adminSetPointConfig = (key: string, value: number) =>
+  authFetch(`/admin/point-config/${key}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value }),
+  });
+export const adminPostQuality = (id: string, on: boolean) =>
+  authFetch(`/admin/posts/${id}/quality`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ on }),
+  });
+export type AdminLevel = { level: number; name: string; minPoints: number };
+export const adminLevelsFull = (): Promise<AdminLevel[]> => authFetch('/admin/levels');
+export const adminLevelSet = (level: number, name: string, minPoints: number) =>
+  authFetch(`/admin/levels/${level}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, minPoints }),
+  });
 export const adminLevelSetName = (level: number, name: string) =>
   authFetch(`/admin/levels/${level}`, {
     method: 'POST',

@@ -1,4 +1,4 @@
-// 知闲 · 管理后台 · 等级称号 + 升级门槛
+// 知闲 · 管理后台 · 分数设置 (포인트 규칙)
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -15,22 +15,36 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
-import { adminLevelsFull, adminLevelSet, type AdminLevel } from '@/data/api';
+import { adminPointConfig, adminSetPointConfig } from '@/data/api';
 import { useAuth } from '@/data/auth';
 
-export default function AdminLevelsScreen() {
+// 표시 순서 + 라벨/설명
+const FIELDS: { key: string; label: string; sub: string }[] = [
+  { key: 'post_create', label: '发帖', sub: '原帖作者获得' },
+  { key: 'like', label: '被点赞', sub: '原帖作者获得（每个赞）' },
+  { key: 'favorite', label: '被收藏', sub: '原帖作者获得（每次收藏）' },
+  { key: 'comment_author', label: '被评论', sub: '原帖作者获得（每条评论）' },
+  { key: 'comment_commenter', label: '发评论', sub: '评论者获得' },
+  { key: 'quality', label: '入选干货', sub: '原帖作者获得' },
+  { key: 'quality_min_likes', label: '干货门槛', sub: '设为干货所需最低赞数（非积分）' },
+];
+
+export default function AdminPointsScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const [rows, setRows] = useState<AdminLevel[]>([]);
+  const [cfg, setCfg] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
-      setRows(await adminLevelsFull());
+      const c = await adminPointConfig();
+      const s: Record<string, string> = {};
+      for (const f of FIELDS) s[f.key] = String(c[f.key] ?? 0);
+      setCfg(s);
     } catch {
-      setRows([]);
+      setCfg({});
     } finally {
       setLoading(false);
     }
@@ -39,25 +53,17 @@ export default function AdminLevelsScreen() {
     load();
   }, [user?.id]);
 
-  function setName(level: number, name: string) {
-    setRows((prev) => prev.map((r) => (r.level === level ? { ...r, name } : r)));
-  }
-  function setMin(level: number, v: string) {
-    const n = Number(v.replace(/[^0-9]/g, '') || 0);
-    setRows((prev) => prev.map((r) => (r.level === level ? { ...r, minPoints: n } : r)));
+  function setVal(key: string, v: string) {
+    setCfg((prev) => ({ ...prev, [key]: v.replace(/[^0-9]/g, '') }));
   }
 
   async function saveAll() {
-    if (rows.some((r) => !r.name.trim())) {
-      Alert.alert('提示', '称号不能为空');
-      return;
-    }
     setSaving(true);
     try {
-      for (const r of rows) {
-        await adminLevelSet(r.level, r.name.trim(), r.minPoints);
+      for (const f of FIELDS) {
+        await adminSetPointConfig(f.key, Number(cfg[f.key] || 0));
       }
-      Alert.alert('已保存', '等级称号与升级门槛已更新');
+      Alert.alert('已保存', '积分规则已更新，立即生效');
       await load();
     } catch (e: any) {
       Alert.alert('保存失败', String(e?.message ?? '请重试'));
@@ -73,7 +79,7 @@ export default function AdminLevelsScreen() {
           <Pressable onPress={() => router.back()} hitSlop={10}>
             <Ionicons name="arrow-back" size={26} color={Brand.text} />
           </Pressable>
-          <Text style={styles.headerTitle}>等级称号</Text>
+          <Text style={styles.headerTitle}>分数设置</Text>
           <View style={{ width: 26 }} />
         </View>
 
@@ -83,30 +89,17 @@ export default function AdminLevelsScreen() {
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.hint}>
-              称号 = 作者头衔。门槛 = 达到该积分自动升到此级（只升不降，Lv1 门槛应为 0）。
-            </Text>
-            <View style={styles.colHead}>
-              <Text style={[styles.colName]}>称号</Text>
-              <Text style={styles.colMin}>门槛(积分)</Text>
-            </View>
-            {rows.map((r) => (
-              <View key={r.level} style={styles.row}>
-                <View style={styles.lvBadge}>
-                  <Text style={styles.lvBadgeText}>Lv{r.level}</Text>
+            <Text style={styles.hint}>各行为的积分，随时可改、立即生效。</Text>
+            {FIELDS.map((f) => (
+              <View key={f.key} style={styles.row}>
+                <View style={styles.rowText}>
+                  <Text style={styles.rowLabel}>{f.label}</Text>
+                  <Text style={styles.rowSub}>{f.sub}</Text>
                 </View>
                 <TextInput
                   style={styles.input}
-                  value={r.name}
-                  onChangeText={(t) => setName(r.level, t)}
-                  placeholder="称号"
-                  placeholderTextColor={Brand.textFaint}
-                  maxLength={12}
-                />
-                <TextInput
-                  style={styles.minInput}
-                  value={String(r.minPoints)}
-                  onChangeText={(t) => setMin(r.level, t)}
+                  value={cfg[f.key] ?? ''}
+                  onChangeText={(t) => setVal(f.key, t)}
                   keyboardType="number-pad"
                   maxLength={9}
                 />
@@ -146,9 +139,6 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: S.lg, gap: S.sm },
   hint: { fontSize: F.small, color: Brand.textSub, marginBottom: S.sm },
-  colHead: { flexDirection: 'row', paddingHorizontal: S.md, gap: S.md },
-  colName: { flex: 1, fontSize: F.tiny, color: Brand.textSub, marginLeft: 60 },
-  colMin: { width: 100, fontSize: F.tiny, color: Brand.textSub, textAlign: 'center' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -157,28 +147,11 @@ const styles = StyleSheet.create({
     borderRadius: R.lg,
     padding: S.md,
   },
-  lvBadge: {
-    width: 48,
-    height: 32,
-    borderRadius: R.md,
-    backgroundColor: Brand.greenSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  lvBadgeText: { fontSize: F.small, fontWeight: '800', color: Brand.greenDeep },
+  rowText: { flex: 1, gap: 2 },
+  rowLabel: { fontSize: F.body, fontWeight: '700', color: Brand.text },
+  rowSub: { fontSize: F.small, color: Brand.textSub },
   input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: Brand.border,
-    borderRadius: R.md,
-    paddingHorizontal: S.md,
-    height: 44,
-    fontSize: F.body,
-    color: Brand.text,
-    backgroundColor: '#fff',
-  },
-  minInput: {
-    width: 100,
+    width: 90,
     borderWidth: 1,
     borderColor: Brand.border,
     borderRadius: R.md,
