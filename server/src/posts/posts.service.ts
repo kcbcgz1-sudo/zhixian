@@ -84,7 +84,7 @@ export class PostsService {
     );
   }
 
-  async findAll(category?: string, userId?: string | null, q?: string) {
+  async findAll(category?: string, userId?: string | null, q?: string, limit?: number, offset?: number) {
     const isCat = category && category !== 'all';
     const kw = q?.trim();
     const where: any = { status: PostStatus.published };
@@ -95,10 +95,14 @@ export class PostsService {
         { body: { contains: kw, mode: 'insensitive' } },
       ];
     }
+    const take = Math.min(Math.max(Number(limit) || 20, 1), 50);
+    const skip = Math.max(Number(offset) || 0, 0);
     const posts = await this.prisma.post.findMany({
       where,
       orderBy: [{ trustScore: 'desc' }, { createdAt: 'desc' }],
       include: { author: true },
+      take,
+      skip,
     });
     return this.shapeList(posts, userId);
   }

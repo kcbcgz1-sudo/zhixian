@@ -22,6 +22,8 @@ import { deletePost, fetchCategories, fetchPosts } from '@/data/api';
 import { useAuth } from '@/data/auth';
 import { type Category, type Post } from '@/data/seed';
 
+const PAGE_SIZE = 20;
+
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -32,6 +34,9 @@ export default function HomeScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     fetchCategories()
@@ -46,13 +51,31 @@ export default function HomeScreen() {
     setLoading(true);
     setError(null);
     try {
-      setPosts(await fetchPosts(filter));
+      const data = await fetchPosts(filter, PAGE_SIZE, 0);
+      setPosts(data);
+      setOffset(data.length);
+      setHasMore(data.length === PAGE_SIZE);
     } catch {
       setError('加载失败，请检查网络后重试');
     } finally {
       setLoading(false);
     }
   }, [filter]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || loading) return;
+    setLoadingMore(true);
+    try {
+      const data = await fetchPosts(filter, PAGE_SIZE, offset);
+      setPosts((prev) => [...prev, ...data]);
+      setOffset((prev) => prev + data.length);
+      setHasMore(data.length === PAGE_SIZE);
+    } catch {
+      // 실패 무시, 다음 스크롤에 재시도
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [filter, offset, hasMore, loadingMore, loading]);
 
   useFocusEffect(
     useCallback(() => {
@@ -125,7 +148,14 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         ) : (
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            scrollEventThrottle={200}
+            onScroll={({ nativeEvent }) => {
+              const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+              if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 300) loadMore();
+            }}>
             {posts.map((post) => (
               <PostCard
                 key={post.id}
@@ -135,6 +165,7 @@ export default function HomeScreen() {
                 onPress={() => router.push({ pathname: '/post/[id]', params: { id: post.id } })}
               />
             ))}
+            {loadingMore && <ActivityIndicator color={Brand.green} style={{ marginVertical: S.md }} />}
             {posts.length === 0 && <Text style={styles.empty}>暂无内容，来发布第一条干货吧</Text>}
           </ScrollView>
         )}

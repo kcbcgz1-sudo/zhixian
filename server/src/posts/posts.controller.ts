@@ -11,9 +11,9 @@ export class PostsController {
   ) {}
 
   @Get()
-  findAll(@Req() req: Request, @Query('category') category?: string, @Query('q') q?: string) {
+  findAll(@Req() req: Request, @Query('category') category?: string, @Query('q') q?: string, @Query('limit') limit?: string, @Query('offset') offset?: string) {
     const uid = this.auth.verifyToken(req.headers['authorization']);
-    return this.posts.findAll(category, uid, q);
+    return this.posts.findAll(category, uid, q, limit ? Number(limit) : undefined, offset ? Number(offset) : undefined);
   }
 
   @Get('hot-keywords')

@@ -21,8 +21,13 @@ async function authFetch(path: string, opts: RequestInit = {}): Promise<any> {
 }
 
 // ── 게시글 ──
-export async function fetchPosts(category: Category | 'all'): Promise<Post[]> {
-  const url = category === 'all' ? `${API_BASE}/posts` : `${API_BASE}/posts?category=${category}`;
+export async function fetchPosts(category: Category | 'all', limit?: number, offset?: number): Promise<Post[]> {
+  const p = new URLSearchParams();
+  if (category !== 'all') p.set('category', String(category));
+  if (limit != null) p.set('limit', String(limit));
+  if (offset != null) p.set('offset', String(offset));
+  const qs = p.toString();
+  const url = `${API_BASE}/posts${qs ? `?${qs}` : ''}`;
   const res = await fetch(url, { headers: { ...authHeaders() } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as Post[];
