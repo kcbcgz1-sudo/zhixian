@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InteractionType, PostStatus } from '@prisma/client';
 import { LevelsService } from '../levels/levels.service.js';
+import { PointsService } from '../points/points.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 export type MediaItem = { url: string; type: string };
@@ -32,6 +33,7 @@ export class PostsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly levels: LevelsService,
+    private readonly points: PointsService,
   ) {}
 
   private async shapeList(posts: any[], userId?: string | null) {
@@ -178,6 +180,8 @@ export class PostsService {
     const me = await this.prisma.user.findUnique({ where: { id: userId } });
     const isAdmin = (me?.role ?? 'user') === 'admin';
     if (!isAdmin && post.authorId !== userId) throw new ForbiddenException('只能删除自己的内容');
+    await this.points.revert(post.authorId, 'post_create', postId);
+    if (post.isQuality) await this.points.revert(post.authorId, 'quality', postId);
     await this.prisma.interaction.deleteMany({ where: { postId } });
     await this.prisma.postImage.deleteMany({ where: { postId } });
     await this.prisma.post.delete({ where: { id: postId } });
@@ -191,6 +195,11 @@ export class PostsService {
     const me = await this.prisma.user.findUnique({ where: { id: userId } });
     const isAdmin = (me?.role ?? 'user') === 'admin';
     if (!isAdmin && c.userId !== userId) throw new ForbiddenException('只能删除自己的评论');
+    const cpost = await this.prisma.post.findUnique({ where: { id: c.postId } });
+    if (cpost) {
+      await this.points.revert(cpost.authorId, 'comment_author', commentId);
+      await this.points.revert(c.userId, 'comment_commenter', commentId);
+    }
     await this.prisma.interaction.delete({ where: { id: commentId } });
     return { ok: true };
   }
@@ -236,6 +245,12 @@ export class PostsService {
       await this.prisma.interaction.delete({ where: { id: existing.id } });
     } else {
       await this.prisma.interaction.create({ data: { postId, userId, type } });
+    }
+    if (post.authorId !== userId && (type === InteractionType.like || type === InteractionType.favorite)) {
+      const reason = type === InteractionType.like ? 'like' : 'favorite';
+      const refId = `${postId}:${userId}`;
+      if (existing) await this.points.revert(post.authorId, reason, refId);
+      else await this.points.award(post.authorId, reason, refId);
     }
     const count = await this.prisma.interaction.count({ where: { postId, type } });
     return { on: !existing, count };
@@ -296,6 +311,10 @@ export class PostsService {
       data: { postId, userId: user.id, type: InteractionType.comment, content: text },
       include: { user: true },
     });
+    if (post.authorId !== user.id) {
+      await this.points.award(post.authorId, 'comment_author', c.id);
+      await this.points.award(user.id, 'comment_commenter', c.id);
+    }
     return this.shapeComment(c, user.id);
   }
 
@@ -335,7 +354,7 @@ export class PostsService {
         body,
         district: dto.district?.trim() || null,
         attributes: { tags, media, cover, authorTitle, aiImage: false },
-        isQuality: media.length > 0,
+        isQuality: false,
         qualityScore: media.length > 0 ? 30 : 0,
         trustScore: 100,
         status: PostStatus.published,
@@ -343,6 +362,7 @@ export class PostsService {
       },
       include: { author: true },
     });
+    await this.points.award(author.id, 'post_create', post.id);
     return this.shape(post);
   }
 

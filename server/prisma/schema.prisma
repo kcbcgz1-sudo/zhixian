@@ -54,8 +54,14 @@ model Category {
 }
 
 model LevelTitle {
-  level Int    @id // 1~10
-  name  String // 레벨별 칭호 (예: 新人)
+  level     Int    @id // 1~10
+  name      String // 레벨별 칭호 (예: 新人)
+  minPoints Int    @default(0) // 이 레벨 승급에 필요한 최소 포인트
+}
+
+model PointConfig {
+  key   String @id
+  value Int
 }
 
 model Post {

@@ -59,7 +59,20 @@ export class AdminController {
     return this.admin.setUserLevel(id, Number(body?.level));
   }
 
-  // ── 레벨 칭호 ──
+  // ── 포인트 규칙 설정 ──
+  @Get('point-config')
+  async pointConfig(@Req() req: Request) {
+    await this.requireAdmin(req);
+    return this.admin.pointConfig();
+  }
+
+  @Post('point-config/:key')
+  async setPointConfig(@Param('key') key: string, @Body() body: any, @Req() req: Request) {
+    await this.requireAdmin(req);
+    return this.admin.setPointConfig(key, Number(body?.value));
+  }
+
+  // ── 레벨 칭호 + 승급 임계값 ──
   @Get('levels')
   async levels(@Req() req: Request) {
     await this.requireAdmin(req);
@@ -69,7 +82,11 @@ export class AdminController {
   @Post('levels/:level')
   async setLevelTitle(@Param('level') level: string, @Body() body: any, @Req() req: Request) {
     await this.requireAdmin(req);
-    return this.admin.setLevelTitle(Number(level), body?.name);
+    return this.admin.setLevelTitle(
+      Number(level),
+      body?.name,
+      body?.minPoints !== undefined ? Number(body.minPoints) : undefined,
+    );
   }
 
   @Get('posts')
@@ -88,6 +105,12 @@ export class AdminController {
   async restore(@Param('id') id: string, @Req() req: Request) {
     await this.requireAdmin(req);
     return this.admin.setPostStatus(id, PostStatus.published);
+  }
+
+  @Post('posts/:id/quality')
+  async setQuality(@Param('id') id: string, @Body() body: any, @Req() req: Request) {
+    await this.requireAdmin(req);
+    return this.admin.setQuality(id, !!body?.on);
   }
 
   @Delete('posts/:id')

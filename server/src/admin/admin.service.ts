@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { PostStatus } from '@prisma/client';
+import { InteractionType, PostStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { PointsService } from '../points/points.service.js';
 
 function clampInt(v: any, min: number, max: number, dflt: number) {
   const n = Math.trunc(Number(v));
@@ -10,7 +11,10 @@ function clampInt(v: any, min: number, max: number, dflt: number) {
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly points: PointsService,
+  ) {}
 
   async stats() {
     const startToday = new Date();
@@ -54,20 +58,31 @@ export class AdminService {
     return { ok: true, level: lv };
   }
 
-  // ── 레벨 칭호 관리 ──
-  async levelTitles() {
-    const rows = await this.prisma.levelTitle.findMany({ orderBy: { level: 'asc' } });
-    return rows.map((r) => ({ level: r.level, name: r.name }));
+  // ── 포인트 규칙 설정 ──
+  async pointConfig() {
+    return this.points.config();
   }
 
-  async setLevelTitle(level: number, name: string) {
+  async setPointConfig(key: string, value: number) {
+    return this.points.setConfig(key, Number(value));
+  }
+
+  // ── 레벨 칭호 + 승급 임계값 관리 ──
+  async levelTitles() {
+    const rows = await this.prisma.levelTitle.findMany({ orderBy: { level: 'asc' } });
+    return rows.map((r: any) => ({ level: r.level, name: r.name, minPoints: r.minPoints ?? 0 }));
+  }
+
+  async setLevelTitle(level: number, name: string, minPoints?: number) {
     const lv = clampInt(level, 1, 10, 1);
     const nm = String(name ?? '').trim();
     if (!nm) throw new BadRequestException('称号必填');
+    const data: any = { name: nm };
+    if (minPoints !== undefined) data.minPoints = clampInt(minPoints, 0, 100000000, 0);
     await this.prisma.levelTitle.upsert({
       where: { level: lv },
-      update: { name: nm },
-      create: { level: lv, name: nm },
+      update: data,
+      create: { level: lv, ...data },
     });
     return { ok: true };
   }
@@ -78,6 +93,15 @@ export class AdminService {
       include: { author: true },
       take: 200,
     });
+    const ids = list.map((p) => p.id);
+    const grp = ids.length
+      ? await this.prisma.interaction.groupBy({
+          by: ['postId'],
+          where: { postId: { in: ids }, type: InteractionType.like },
+          _count: { _all: true },
+        })
+      : [];
+    const lmap = new Map<string, number>(grp.map((g: any) => [g.postId, g._count._all]));
     return list.map((p: any) => ({
       id: p.id,
       title: p.title,
@@ -85,8 +109,33 @@ export class AdminService {
       status: p.status,
       author: p.author?.nickname ?? '',
       cover: (p.attributes as any)?.cover ?? null,
+      likes: lmap.get(p.id) ?? 0,
+      isQuality: !!p.isQuality,
       createdAt: p.createdAt,
     }));
+  }
+
+  // ── 干货 지정/해제 (좋아요 최소치 게이팅 + 포인트 적립/회수) ──
+  async setQuality(postId: string, on: boolean) {
+    const post = await this.prisma.post.findUnique({ where: { id: postId } });
+    if (!post) throw new BadRequestException('内容不存在');
+    const want = !!on;
+    if (want === post.isQuality) return { ok: true, isQuality: post.isQuality };
+    if (want) {
+      const minLikes = await this.points.value('quality_min_likes');
+      const likes = await this.prisma.interaction.count({
+        where: { postId, type: InteractionType.like },
+      });
+      if (likes < minLikes) {
+        throw new BadRequestException(`需要 ${minLikes} 个赞才能设为干货（当前 ${likes}）`);
+      }
+      await this.prisma.post.update({ where: { id: postId }, data: { isQuality: true } });
+      await this.points.award(post.authorId, 'quality', postId);
+    } else {
+      await this.prisma.post.update({ where: { id: postId }, data: { isQuality: false } });
+      await this.points.revert(post.authorId, 'quality', postId);
+    }
+    return { ok: true, isQuality: want };
   }
 
   async setPostStatus(id: string, status: PostStatus) {

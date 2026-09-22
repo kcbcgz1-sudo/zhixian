@@ -30,7 +30,7 @@ export class LevelsService implements OnModuleInit {
 
   async list() {
     const rows = await this.prisma.levelTitle.findMany({ orderBy: { level: 'asc' } });
-    return rows.map((r) => ({ level: r.level, name: r.name }));
+    return rows.map((r: any) => ({ level: r.level, name: r.name, minPoints: r.minPoints ?? 0 }));
   }
 
   async titleFor(level: number): Promise<string> {
