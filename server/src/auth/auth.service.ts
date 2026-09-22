@@ -101,6 +101,16 @@ export class AuthService implements OnModuleInit {
         province: dto.province?.trim() || '广东',
       },
     });
+    await this.prisma.notification
+      .create({
+        data: {
+          userId: user.id,
+          type: 'welcome',
+          title: '欢迎加入知闲',
+          body: `欢迎，${user.nickname}！开始分享你的干货，赚积分、升等级吧。`,
+        },
+      })
+      .catch(() => {});
     return { token: this.sign(user.id), user: await this.publicUser(user) };
   }
 

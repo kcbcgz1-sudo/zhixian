@@ -122,6 +122,17 @@ export class PointsService implements OnModuleInit {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (user && target > (user.level ?? 1)) {
       await this.prisma.user.update({ where: { id: userId }, data: { level: target } });
+      const lt = levels.find((l) => l.level === target);
+      await this.prisma.notification
+        .create({
+          data: {
+            userId,
+            type: 'levelup',
+            title: '等级提升',
+            body: `恭喜升到 Lv${target}${lt?.name ? ' ' + lt.name : ''}！`,
+          },
+        })
+        .catch(() => {});
     }
   }
 }

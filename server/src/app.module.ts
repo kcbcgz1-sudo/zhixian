@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { CategoriesModule } from './categories/categories.module.js';
 import { LevelsModule } from './levels/levels.module.js';
 import { PointsModule } from './points/points.module.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
 import { PostsModule } from './posts/posts.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
@@ -17,6 +18,7 @@ import { UploadsModule } from './uploads/uploads.module.js';
     CategoriesModule,
     LevelsModule,
     PointsModule,
+    NotificationsModule,
     PostsModule,
     UploadsModule,
     AdminModule,

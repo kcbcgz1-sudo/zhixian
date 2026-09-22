@@ -72,6 +72,12 @@ export class AdminController {
     return this.admin.setPointConfig(key, Number(body?.value));
   }
 
+  @Post('broadcast')
+  async broadcast(@Body() body: any, @Req() req: Request) {
+    await this.requireAdmin(req);
+    return this.admin.broadcast(body?.body, body?.title, body?.userId || undefined);
+  }
+
   // ── 레벨 칭호 + 승급 임계값 ──
   @Get('levels')
   async levels(@Req() req: Request) {

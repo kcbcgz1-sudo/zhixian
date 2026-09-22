@@ -131,11 +131,40 @@ export class AdminService {
       }
       await this.prisma.post.update({ where: { id: postId }, data: { isQuality: true } });
       await this.points.award(post.authorId, 'quality', postId);
+      const qpts = await this.points.value('quality');
+      await this.prisma.notification
+        .create({
+          data: {
+            userId: post.authorId,
+            type: 'quality',
+            title: '干货入选',
+            body: `你的帖子「${post.title}」被选为干货！+${qpts}积分`,
+            postId,
+          },
+        })
+        .catch(() => {});
     } else {
       await this.prisma.post.update({ where: { id: postId }, data: { isQuality: false } });
       await this.points.revert(post.authorId, 'quality', postId);
     }
     return { ok: true, isQuality: want };
+  }
+
+  async broadcast(body: string, title?: string, userId?: string) {
+    const text = String(body ?? '').trim();
+    if (!text) throw new BadRequestException('内容必填');
+    const t = String(title ?? '').trim() || '系统通知';
+    if (userId) {
+      await this.prisma.notification.create({ data: { userId, type: 'admin', title: t, body: text } });
+      return { ok: true, count: 1 };
+    }
+    const users = await this.prisma.user.findMany({ select: { id: true } });
+    if (users.length) {
+      await this.prisma.notification.createMany({
+        data: users.map((u) => ({ userId: u.id, type: 'admin', title: t, body: text })),
+      });
+    }
+    return { ok: true, count: users.length };
   }
 
   async setPostStatus(id: string, status: PostStatus) {

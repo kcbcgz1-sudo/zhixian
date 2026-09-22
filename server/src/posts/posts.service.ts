@@ -252,7 +252,24 @@ export class PostsService {
       const reason = type === InteractionType.like ? 'like' : 'favorite';
       const refId = `${postId}:${userId}`;
       if (existing) await this.points.revert(post.authorId, reason, refId);
-      else await this.points.award(post.authorId, reason, refId);
+      else {
+        await this.points.award(post.authorId, reason, refId);
+        const actor = await this.prisma.user.findUnique({ where: { id: userId } });
+        const pts = await this.points.value(reason);
+        const verb = type === InteractionType.like ? '赞了' : '收藏了';
+        await this.prisma.notification
+          .create({
+            data: {
+              userId: post.authorId,
+              type: reason,
+              body: `${actor?.nickname ?? '有人'} ${verb}你的帖子「${post.title}」 +${pts}积分`,
+              actorId: userId,
+              actorName: actor?.nickname ?? '',
+              postId,
+            },
+          })
+          .catch(() => {});
+      }
     }
     const count = await this.prisma.interaction.count({ where: { postId, type } });
     return { on: !existing, count };
@@ -316,6 +333,19 @@ export class PostsService {
     if (post.authorId !== user.id) {
       await this.points.award(post.authorId, 'comment_author', c.id);
       await this.points.award(user.id, 'comment_commenter', c.id);
+      const pts = await this.points.value('comment_author');
+      await this.prisma.notification
+        .create({
+          data: {
+            userId: post.authorId,
+            type: 'comment',
+            body: `${user.nickname} 评论了你的帖子「${post.title}」 +${pts}积分`,
+            actorId: user.id,
+            actorName: user.nickname,
+            postId,
+          },
+        })
+        .catch(() => {});
     }
     return this.shapeComment(c, user.id);
   }
