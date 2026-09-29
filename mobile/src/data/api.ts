@@ -502,3 +502,21 @@ export async function checkinStatus(): Promise<CheckinStatus> {
 export async function doCheckin(): Promise<CheckinStatus> {
   return (await activityMutate('/checkin', { method: 'POST' })) as CheckinStatus;
 }
+
+// ── AI 内容生成(관리자) ──
+export type AiDraft = { title: string; body: string; tags: string[] };
+export async function aiStatus(): Promise<{ hasKey: boolean }> {
+  return (await authFetch('/admin/ai/status')) as { hasKey: boolean };
+}
+export async function aiDraft(topic: string, category?: string, city?: string): Promise<AiDraft> {
+  return (await activityMutate('/admin/ai/draft', {
+    method: 'POST',
+    body: JSON.stringify({ topic, category, city }),
+  })) as AiDraft;
+}
+export async function aiImage(prompt: string): Promise<{ url: string; type: string }> {
+  return (await activityMutate('/admin/ai/image', {
+    method: 'POST',
+    body: JSON.stringify({ prompt }),
+  })) as { url: string; type: string };
+}

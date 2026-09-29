@@ -75,6 +75,12 @@ export default function AdminScreen() {
               ))}
             </View>
 
+            <Pressable style={styles.nav} onPress={() => router.push('/admin-ai' as any)}>
+              <Ionicons name="sparkles-outline" size={24} color={Brand.green} />
+              <Text style={styles.navText}>AI 内容生成</Text>
+              <Text style={styles.navSub}>一键生成干货帖 + 配图</Text>
+              <Ionicons name="chevron-forward" size={22} color={Brand.textFaint} />
+            </Pressable>
             <Pressable style={styles.nav} onPress={() => router.push('/admin-posts' as any)}>
               <Ionicons name="document-text-outline" size={24} color={Brand.text} />
               <Text style={styles.navText}>内容管理</Text>
