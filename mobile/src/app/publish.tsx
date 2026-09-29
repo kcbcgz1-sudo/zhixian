@@ -38,6 +38,20 @@ export default function PublishScreen() {
             <Ionicons name="chevron-forward" size={22} color={Brand.textFaint} />
           </Pressable>
 
+          {/* 发起约伴 → 활동 만들기 */}
+          <Pressable
+            style={styles.card}
+            onPress={() => router.replace('/activity-new' as any)}>
+            <View style={[styles.cardIcon, { backgroundColor: Brand.greenDark }]}>
+              <Ionicons name="people-outline" size={28} color="#fff" />
+            </View>
+            <View style={styles.cardTextWrap}>
+              <Text style={styles.cardTitle}>发起约伴</Text>
+              <Text style={styles.cardDesc}>约人一起钓鱼/登山，招募同城同行的伙伴</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color={Brand.textFaint} />
+          </Pressable>
+
           {/* 随手记(경량) — 추후 */}
           <Pressable style={styles.card} onPress={() => Alert.alert('随手记', '即将上线')}>
             <View style={[styles.cardIcon, { backgroundColor: Brand.textFaint }]}>

@@ -39,6 +39,8 @@ model User {
   interactions Interaction[]
   ledger       PointsLedger[]
   notifications Notification[]
+  activities   Activity[]
+  activitySignups ActivitySignup[]
   createdAt    DateTime      @default(now())
 }
 
@@ -147,4 +149,40 @@ model PointsLedger {
   refId        String?
   balanceAfter Int
   createdAt    DateTime @default(now())
+}
+
+// 约伴/活动 (companion outings)
+model Activity {
+  id              String   @id @default(cuid())
+  organizer       User     @relation(fields: [organizerId], references: [id])
+  organizerId     String
+  category        String   // Category.code (fishing/hiking ...)
+  title           String
+  description     String
+  province        String?
+  city            String?
+  district        String?
+  meetPoint       String   // 集合地点
+  startAt         DateTime // 出发时间
+  maxParticipants Int?     // null = no limit
+  contact         String?  // wechat etc (optional)
+  status          String   @default("open") // open/full/closed/cancelled
+  signups         ActivitySignup[]
+  createdAt       DateTime @default(now())
+
+  @@index([status, startAt])
+  @@index([city, status])
+}
+
+model ActivitySignup {
+  id         String   @id @default(cuid())
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  activityId String
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@unique([activityId, userId])
+  @@index([userId])
 }

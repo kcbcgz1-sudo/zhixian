@@ -53,7 +53,10 @@ export default function MessagesScreen() {
       setList((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
       notifMarkRead(n.id).catch(() => {});
     }
-    if (n.postId) router.push({ pathname: '/post/[id]', params: { id: n.postId } });
+    if (n.postId) {
+      if (n.type && n.type.startsWith('activity')) router.push({ pathname: '/activity/[id]', params: { id: n.postId } });
+      else router.push({ pathname: '/post/[id]', params: { id: n.postId } });
+    }
   }
 
   async function markAll() {

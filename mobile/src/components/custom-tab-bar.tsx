@@ -13,6 +13,7 @@ import { useAuth } from '@/data/auth';
 // 탭 이름 → 아이콘 매핑
 const ICONS: Record<string, { on: keyof typeof Ionicons.glyphMap; off: keyof typeof Ionicons.glyphMap }> = {
   index: { on: 'home', off: 'home-outline' },
+  activities: { on: 'people', off: 'people-outline' },
   mine: { on: 'person', off: 'person-outline' },
   messages: { on: 'chatbubble', off: 'chatbubble-outline' },
   favorites: { on: 'bookmark', off: 'bookmark-outline' },
@@ -48,7 +49,7 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
   const routes = state.routes.filter((r) => ICONS[r.name]);
   const left = routes.slice(0, 2);
-  const right = routes.slice(2, 4);
+  const right = routes.slice(2);
 
   const renderTab = (route: (typeof routes)[number]) => {
     const index = state.routes.findIndex((r) => r.key === route.key);

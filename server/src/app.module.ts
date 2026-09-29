@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AdminModule } from './admin/admin.module.js';
+import { ActivitiesModule } from './activities/activities.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
@@ -22,6 +23,7 @@ import { UploadsModule } from './uploads/uploads.module.js';
     PostsModule,
     UploadsModule,
     AdminModule,
+    ActivitiesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

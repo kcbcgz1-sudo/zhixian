@@ -386,3 +386,88 @@ export const adminLevelSetName = (level: number, name: string) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
   });
+
+// ── 约伴/活动 ──
+export type ActivityParticipant = {
+  userId: string;
+  nickname: string;
+  avatar?: string | null;
+  level: number;
+  note?: string;
+  createdAt: string;
+};
+export type Activity = {
+  id: string;
+  category: string;
+  title: string;
+  city?: string | null;
+  district?: string | null;
+  meetPoint: string;
+  startAt: string;
+  maxParticipants?: number | null;
+  status: string;
+  organizerId: string;
+  organizerName: string;
+  organizerLevel: number;
+  signupCount: number;
+  joined: boolean;
+  mine: boolean;
+  full: boolean;
+  description?: string;
+  province?: string | null;
+  contact?: string | null;
+  organizerAvatar?: string | null;
+  createdAt?: string;
+  participants?: ActivityParticipant[];
+};
+export type NewActivity = {
+  category: string;
+  title: string;
+  description?: string;
+  province?: string;
+  city?: string;
+  district?: string;
+  meetPoint: string;
+  startAt: string;
+  maxParticipants?: number | null;
+  contact?: string;
+};
+
+async function activityMutate(path: string, opts: RequestInit): Promise<any> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', ...(opts.headers as any), ...authHeaders() },
+  });
+  const t = await res.text();
+  const data = t ? JSON.parse(t) : null;
+  if (!res.ok) throw new Error((data && data.message) || `HTTP ${res.status}`);
+  return data;
+}
+
+export async function fetchActivities(city?: string, category?: string, limit?: number, offset?: number): Promise<Activity[]> {
+  const p = new URLSearchParams();
+  if (city) p.set('city', city);
+  if (category) p.set('category', category);
+  if (limit != null) p.set('limit', String(limit));
+  if (offset != null) p.set('offset', String(offset));
+  const qs = p.toString();
+  return (await authFetch(`/activities${qs ? `?${qs}` : ''}`)) as Activity[];
+}
+export async function fetchActivity(id: string): Promise<Activity> {
+  return (await authFetch(`/activities/${id}`)) as Activity;
+}
+export async function fetchMyActivities(): Promise<{ organized: Activity[]; joined: Activity[] }> {
+  return (await authFetch('/activities/mine')) as { organized: Activity[]; joined: Activity[] };
+}
+export async function createActivity(body: NewActivity): Promise<Activity> {
+  return (await activityMutate('/activities', { method: 'POST', body: JSON.stringify(body) })) as Activity;
+}
+export async function signupActivity(id: string, note?: string): Promise<Activity> {
+  return (await activityMutate(`/activities/${id}/signup`, { method: 'POST', body: JSON.stringify({ note }) })) as Activity;
+}
+export async function cancelSignupActivity(id: string): Promise<Activity> {
+  return (await activityMutate(`/activities/${id}/signup`, { method: 'DELETE' })) as Activity;
+}
+export async function cancelActivity(id: string): Promise<{ ok: boolean }> {
+  return (await activityMutate(`/activities/${id}`, { method: 'DELETE' })) as { ok: boolean };
+}
