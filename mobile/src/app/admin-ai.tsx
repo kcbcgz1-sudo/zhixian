@@ -50,6 +50,7 @@ export default function AdminAiScreen() {
   const [genDraft, setGenDraft] = useState(false);
   const [genImg, setGenImg] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [done, setDone] = useState(false);
 
   useEffect(() => injectThinBar(), []);
   useEffect(() => {
@@ -116,10 +117,16 @@ export default function AdminAiScreen() {
         tags,
         media: imageUrl ? [{ url: imageUrl, type: 'image' }] : [],
       });
-      Alert.alert('发布成功', '已发布到内容流', [
-        { text: '再写一篇', onPress: () => { setTopic(''); setTitle(''); setBody(''); setTagsText(''); setImgPrompt(''); setImageUrl(''); } },
-        { text: '返回', onPress: () => router.back() },
-      ]);
+      setDone(true);
+      setTimeout(() => {
+        setTopic('');
+        setTitle('');
+        setBody('');
+        setTagsText('');
+        setImgPrompt('');
+        setImageUrl('');
+        setDone(false);
+      }, 1300);
     } catch (e: any) {
       Alert.alert('发布失败', String(e?.message ?? '请重试'));
     } finally {
@@ -202,6 +209,15 @@ export default function AdminAiScreen() {
           <Text style={styles.hint}>发布后作者为当前管理员账号。建议逐条审核内容真实性后再发布。</Text>
         </ScrollView>
       </SafeAreaView>
+
+      {done && (
+        <View style={styles.overlay} pointerEvents="none">
+          <View style={styles.successCard}>
+            <Ionicons name="checkmark-circle" size={56} color={Brand.green} />
+            <Text style={styles.successText}>发布成功</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -293,4 +309,23 @@ const styles = StyleSheet.create({
   },
   publishText: { color: '#fff', fontSize: F.body, fontWeight: '800' },
   hint: { fontSize: F.small, color: Brand.textSub, marginTop: S.sm, lineHeight: 18 },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successCard: {
+    backgroundColor: '#fff',
+    paddingHorizontal: S.xxl,
+    paddingVertical: S.xl,
+    borderRadius: R.lg,
+    alignItems: 'center',
+    gap: S.sm,
+  },
+  successText: { fontSize: F.h2, fontWeight: '800', color: Brand.text },
 });
