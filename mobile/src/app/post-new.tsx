@@ -34,6 +34,7 @@ export default function PostNewScreen() {
   const [category, setCategory] = useState<Category>('');
   const [province, setProvince] = useState(DEFAULT_PROVINCE);
   const [city, setCity] = useState(DEFAULT_CITY);
+  const [district, setDistrict] = useState('');
 
   useEffect(() => {
     fetchCategories()
@@ -111,6 +112,7 @@ export default function PostNewScreen() {
         body: body.trim(),
         province,
         city,
+        district: district || undefined,
         media,
       });
       setDone(true);
@@ -178,7 +180,7 @@ export default function PostNewScreen() {
           </View>
 
           <Text style={styles.label}>所在地区</Text>
-          <RegionInline province={province} city={city} onChange={(p, c) => { setProvince(p); setCity(c); }} />
+          <RegionInline province={province} city={city} district={district} showDistrict onChange={(p, c, d) => { setProvince(p); setCity(c); setDistrict(d); }} />
 
           <Text style={styles.label}>标题</Text>
           <TextInput

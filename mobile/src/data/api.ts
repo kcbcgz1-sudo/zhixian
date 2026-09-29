@@ -89,6 +89,7 @@ export type NewPost = {
   body: string;
   province?: string;
   city?: string;
+  district?: string;
   tags?: string[];
   media?: { url: string; type: string }[];
 };

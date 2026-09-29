@@ -16,6 +16,7 @@ export type CreatePostDto = {
   body: string;
   province?: string;
   city?: string;
+  district?: string;
   tags?: string[];
   media?: MediaItem[];
 };
@@ -386,6 +387,7 @@ export class PostsService {
         body,
         province: dto.province?.trim() || (author as any).province || '广东',
         city: dto.city?.trim() || author.city || '广州',
+        district: dto.district?.trim() || null,
         attributes: { tags, media, cover, authorTitle, aiImage: false },
         isQuality: false,
         qualityScore: media.length > 0 ? 30 : 0,
@@ -420,6 +422,7 @@ export class PostsService {
       title: p.title,
       city: p.city ?? null,
       province: p.province ?? null,
+      district: p.district ?? null,
       tags: Array.isArray(a.tags) ? a.tags : [],
       excerpt: makeExcerpt(p.body),
       author: p.author?.nickname ?? '',

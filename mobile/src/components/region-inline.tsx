@@ -1,19 +1,25 @@
-// 知闲 · 省/市 인라인 선택 (회원가입·글쓰기)
+// 知闲 · 省/市(/区) 인라인 선택 (회원가입·글쓰기). showDistrict면 广州 등에서 区 표시
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Brand, F, R, S } from '@/constants/brand';
-import { PROVINCES, citiesOf } from '@/constants/regions';
+import { PROVINCES, citiesOf, districtsOf } from '@/constants/regions';
 
 export default function RegionInline({
   province,
   city,
+  district = '',
+  showDistrict = false,
   onChange,
 }: {
   province: string;
   city: string;
-  onChange: (province: string, city: string) => void;
+  district?: string;
+  showDistrict?: boolean;
+  onChange: (province: string, city: string, district: string) => void;
 }) {
   const cities = citiesOf(province);
+  const districts = showDistrict ? districtsOf(city) : [];
+
   return (
     <View style={{ gap: S.sm }}>
       <Text style={styles.sub}>省</Text>
@@ -30,7 +36,7 @@ export default function RegionInline({
                 key={p.name}
                 onPress={() => {
                   const nc = citiesOf(p.name);
-                  onChange(p.name, nc.includes(city) ? city : nc[0] ?? '');
+                  onChange(p.name, nc[0] ?? '', '');
                 }}
                 style={[styles.chip, on ? styles.on : styles.off]}>
                 <Text style={[styles.chipText, { color: on ? '#fff' : Brand.text }]}>{p.name}</Text>
@@ -52,7 +58,7 @@ export default function RegionInline({
             return (
               <Pressable
                 key={c}
-                onPress={() => onChange(province, c)}
+                onPress={() => onChange(province, c, '')}
                 style={[styles.chip, on ? styles.on : styles.off]}>
                 <Text style={[styles.chipText, { color: on ? '#fff' : Brand.text }]}>{c}</Text>
               </Pressable>
@@ -60,6 +66,36 @@ export default function RegionInline({
           })}
         </ScrollView>
       </View>
+
+      {districts.length > 0 && (
+        <>
+          <Text style={styles.sub}>区 (选填)</Text>
+          <View style={styles.box}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator
+              contentContainerStyle={styles.row}
+              {...(Platform.OS === 'web' ? ({ dataSet: { thinbar: 'dist' } } as any) : {})}>
+              <Pressable
+                onPress={() => onChange(province, city, '')}
+                style={[styles.chip, district === '' ? styles.on : styles.off]}>
+                <Text style={[styles.chipText, { color: district === '' ? '#fff' : Brand.text }]}>不限</Text>
+              </Pressable>
+              {districts.map((d) => {
+                const on = d === district;
+                return (
+                  <Pressable
+                    key={d}
+                    onPress={() => onChange(province, city, d)}
+                    style={[styles.chip, on ? styles.on : styles.off]}>
+                    <Text style={[styles.chipText, { color: on ? '#fff' : Brand.text }]}>{d}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </>
+      )}
     </View>
   );
 }
