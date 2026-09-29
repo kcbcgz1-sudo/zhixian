@@ -20,6 +20,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
+import BottomNav from '@/components/bottom-nav';
 import {
   createComment,
   deleteComment,
@@ -351,6 +352,7 @@ export default function PostDetail() {
           </>
         )}
       </SafeAreaView>
+      <BottomNav />
       <Modal visible={dmOpen} transparent animationType="fade" onRequestClose={() => setDmOpen(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '100%', maxWidth: 360, gap: 12 }}>

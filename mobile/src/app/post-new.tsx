@@ -24,6 +24,7 @@ import { shrinkImage } from '@/data/image';
 import { useAuth } from '@/data/auth';
 import { type Category } from '@/data/seed';
 import RegionInline from '@/components/region-inline';
+import BottomNav from '@/components/bottom-nav';
 import { DEFAULT_CITY, DEFAULT_PROVINCE } from '@/constants/regions';
 
 type Asset = ImagePicker.ImagePickerAsset;
@@ -325,6 +326,7 @@ export default function PostNewScreen() {
           <Text style={styles.hint}>真实实拍更容易被评为「干货」、赚积分、上首页。内容里的 #标签 会显示在列表上。</Text>
         </ScrollView>
       </SafeAreaView>
+      <BottomNav />
 
       {done && (
         <View style={styles.overlay}>
