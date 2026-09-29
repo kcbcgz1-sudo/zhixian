@@ -53,11 +53,14 @@ export default function AdminAiScreen() {
 
   useEffect(() => injectThinBar(), []);
   useEffect(() => {
-    aiStatus().then((r) => setHasKey(r.hasKey)).catch(() => setHasKey(false));
     fetchCategories()
       .then((list) => { setCats(list); setCategory((p) => p || list[0]?.code || ''); })
       .catch(() => {});
   }, []);
+  useEffect(() => {
+    if (!user) return;
+    aiStatus().then((r) => setHasKey(r.hasKey)).catch(() => setHasKey(false));
+  }, [user?.id]);
   useEffect(() => {
     if (user) {
       if (user.city) setCity(user.city);
