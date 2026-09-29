@@ -1,13 +1,15 @@
 // 知闲 · 我的(프로필) — 로그인 상태 반영
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
-import { fetchMyPosts } from '@/data/api';
+import { fetchMyPosts, updateProfile, uploadMedia } from '@/data/api';
 import { useAuth } from '@/data/auth';
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -29,8 +31,41 @@ function Row({ label, onPress }: { label: string; onPress?: () => void }) {
 
 export default function MineScreen() {
   const router = useRouter();
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, refresh } = useAuth();
   const [postCount, setPostCount] = useState<number | null>(null);
+  const [busy, setBusy] = useState<null | 'avatar' | 'cover'>(null);
+
+  async function pickAndUpload(kind: 'avatar' | 'cover') {
+    if (!user) {
+      Alert.alert('请先登录', '登录后才能修改头像和背景');
+      router.push('/login' as any);
+      return;
+    }
+    if (busy) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('需要相册权限', '请在系统设置中允许访问相册');
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: kind === 'avatar' ? [1, 1] : [16, 9],
+      quality: 0.85,
+    });
+    if (res.canceled) return;
+    setBusy(kind);
+    try {
+      const a = res.assets[0];
+      const up = await uploadMedia({ uri: a.uri, fileName: a.fileName, mimeType: a.mimeType });
+      await updateProfile(kind === 'avatar' ? { avatar: up.url } : { coverImage: up.url });
+      await refresh();
+    } catch (e: any) {
+      Alert.alert('保存失败', String(e?.message ?? '请重试'));
+    } finally {
+      setBusy(null);
+    }
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -50,19 +85,44 @@ export default function MineScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={[Brand.greenDeep, Brand.green]} style={styles.header}>
+      <View style={styles.header}>
+        {user?.coverImage ? (
+          <>
+            <Image source={{ uri: user.coverImage }} style={styles.coverImg} contentFit="cover" />
+            <View style={styles.coverOverlay} />
+          </>
+        ) : (
+          <LinearGradient colors={[Brand.greenDeep, Brand.green]} style={StyleSheet.absoluteFill} />
+        )}
         <SafeAreaView edges={['top']}>
           <View style={styles.headerBar}>
             <View style={{ width: 26 }} />
-            <Ionicons name="settings-outline" size={24} color="#fff" />
+            <Pressable onPress={() => pickAndUpload('cover')} hitSlop={10} style={styles.gearBtn}>
+              {busy === 'cover' ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Ionicons name="settings-outline" size={24} color="#fff" />
+              )}
+            </Pressable>
           </View>
         </SafeAreaView>
-      </LinearGradient>
+      </View>
 
       <View style={styles.avatarWrap}>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={44} color={Brand.green} />
-        </View>
+        <Pressable style={styles.avatar} onPress={() => pickAndUpload('avatar')}>
+          {user?.avatar ? (
+            <Image source={{ uri: user.avatar }} style={styles.avatarImg} contentFit="cover" />
+          ) : (
+            <Ionicons name="person" size={44} color={Brand.green} />
+          )}
+          <View style={styles.camBadge}>
+            {busy === 'avatar' ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Ionicons name="camera" size={14} color="#fff" />
+            )}
+          </View>
+        </Pressable>
       </View>
 
       {loading ? (
@@ -132,7 +192,10 @@ export default function MineScreen() {
 const AVATAR = 88;
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Brand.card },
-  header: { height: 150, borderBottomLeftRadius: R.xl, borderBottomRightRadius: R.xl },
+  header: { height: 150, borderBottomLeftRadius: R.xl, borderBottomRightRadius: R.xl, overflow: 'hidden' },
+  coverImg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
+  coverOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.22)' },
+  gearBtn: { padding: 4 },
   headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -153,6 +216,21 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 5,
+    overflow: 'visible',
+  },
+  avatarImg: { width: AVATAR - 10, height: AVATAR - 10, borderRadius: R.md },
+  camBadge: {
+    position: 'absolute',
+    right: -3,
+    bottom: -3,
+    width: 26,
+    height: 26,
+    borderRadius: 999,
+    backgroundColor: Brand.green,
+    borderWidth: 2,
+    borderColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   center: { alignItems: 'center', justifyContent: 'center', paddingTop: S.xxl },
   body: { paddingHorizontal: S.lg, paddingTop: S.lg, paddingBottom: 120, gap: S.md },

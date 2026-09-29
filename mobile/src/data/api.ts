@@ -200,6 +200,7 @@ export type PublicUser = {
   level: number;
   title: string;
   avatar: string | null;
+  coverImage: string | null;
   role: string;
 };
 async function parseError(res: Response, fallback: string): Promise<string> {
@@ -242,6 +243,18 @@ export async function authLogin(data: {
 export async function authMe(): Promise<PublicUser> {
   const res = await fetch(`${API_BASE}/auth/me`, { headers: authHeaders() });
   if (!res.ok) throw new Error('unauthorized');
+  return res.json();
+}
+export async function updateProfile(dto: {
+  avatar?: string | null;
+  coverImage?: string | null;
+}): Promise<PublicUser> {
+  const res = await fetch(`${API_BASE}/auth/profile`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(dto),
+  });
+  if (!res.ok) throw new Error(await parseError(res, '保存失败'));
   return res.json();
 }
 

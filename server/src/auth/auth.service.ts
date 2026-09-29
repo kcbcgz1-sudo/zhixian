@@ -20,6 +20,7 @@ export type PublicUser = {
   level: number;
   title: string;
   avatar: string | null;
+  coverImage: string | null;
   role: string;
 };
 
@@ -64,6 +65,7 @@ export class AuthService implements OnModuleInit {
       level: u.level,
       title: lt?.name ?? '',
       avatar: u.avatar ?? null,
+      coverImage: u.coverImage ?? null,
       role: u.role ?? 'user',
     };
   }
@@ -124,6 +126,18 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('账号或密码错误');
     if (user.status === 'banned') throw new UnauthorizedException('账号已被封禁');
     return { token: this.sign(user.id), user: await this.publicUser(user) };
+  }
+
+  async updateProfile(
+    userId: string,
+    dto: { avatar?: string | null; coverImage?: string | null },
+  ) {
+    const data: any = {};
+    if (dto.avatar !== undefined) data.avatar = dto.avatar || null;
+    if (dto.coverImage !== undefined) data.coverImage = dto.coverImage || null;
+    if (Object.keys(data).length === 0) return this.me(userId);
+    const user = await this.prisma.user.update({ where: { id: userId }, data });
+    return await this.publicUser(user);
   }
 
   async me(userId: string) {

@@ -10,6 +10,7 @@ type AuthContextType = {
   login: (account: string, password: string) => Promise<void>;
   register: (d: { username: string; email: string; password: string; nickname?: string; province?: string; city?: string }) => Promise<void>;
   logout: () => Promise<void>;
+  refresh: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>(null as any);
@@ -56,9 +57,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.removeItem(TOKEN_KEY).catch(() => {});
     setUser(null);
   };
+  const refresh = async () => {
+    try {
+      setUser(await authMe());
+    } catch {
+      // 갱신 실패는 조용히 무시
+    }
+  };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   );

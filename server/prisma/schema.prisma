@@ -29,6 +29,7 @@ model User {
   passwordHash String?
   nickname     String
   avatar       String?
+  coverImage   String?
   city         String        @default("广州")
   province     String        @default("广东")
   points       Int           @default(0)

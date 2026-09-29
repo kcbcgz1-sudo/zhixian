@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Req, UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';
 import { AuthService } from './auth.service.js';
 
@@ -14,6 +14,16 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: { account: string; password: string }) {
     return this.auth.login(dto);
+  }
+
+  @Patch('profile')
+  updateProfile(
+    @Body() dto: { avatar?: string | null; coverImage?: string | null },
+    @Req() req: Request,
+  ) {
+    const uid = this.auth.verifyToken(req.headers['authorization']);
+    if (!uid) throw new UnauthorizedException();
+    return this.auth.updateProfile(uid, dto);
   }
 
   @Get('me')
