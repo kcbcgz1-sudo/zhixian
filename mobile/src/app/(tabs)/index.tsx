@@ -126,6 +126,9 @@ export default function HomeScreen() {
           <Pressable onPress={() => router.push('/search' as any)} hitSlop={10}>
             <Ionicons name="search" size={22} color={Brand.text} />
           </Pressable>
+          <Pressable onPress={() => router.push('/publish' as any)} hitSlop={10} style={{ marginLeft: 18 }}>
+            <Ionicons name="create-outline" size={24} color={Brand.text} />
+          </Pressable>
         </View>
 
         <View style={styles.chipsBox}>

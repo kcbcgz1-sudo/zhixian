@@ -8,6 +8,7 @@ export const DEFAULT_CONFIG: Record<string, number> = {
   comment_author: 1, // 댓글 (원글 작성자)
   comment_commenter: 1, // 댓글 (댓글 작성자)
   favorite: 10, // 즐겨찾기 (원글 작성자)
+  checkin: 5, // 每日签到 (每日 1회, 연속일수 보너스는 별도)
   quality: 100, // 干货 선정 (원글 작성자)
   quality_min_likes: 100, // 干货 지정 가능 최소 좋아요 수(적립 아님, 게이팅용)
 };
@@ -34,6 +35,7 @@ const AWARD_KEYS = new Set([
   'comment_commenter',
   'favorite',
   'quality',
+  'checkin',
 ]);
 
 @Injectable()

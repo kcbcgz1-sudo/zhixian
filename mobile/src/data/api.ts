@@ -471,3 +471,20 @@ export async function cancelSignupActivity(id: string): Promise<Activity> {
 export async function cancelActivity(id: string): Promise<{ ok: boolean }> {
   return (await activityMutate(`/activities/${id}`, { method: 'DELETE' })) as { ok: boolean };
 }
+
+// ── 每日签到(打卡) ──
+export type CheckinStatus = {
+  checkedToday: boolean;
+  streak: number;
+  total: number;
+  points: number;
+  today?: string;
+  already?: boolean;
+  gained?: number;
+};
+export async function checkinStatus(): Promise<CheckinStatus> {
+  return (await authFetch('/checkin/status')) as CheckinStatus;
+}
+export async function doCheckin(): Promise<CheckinStatus> {
+  return (await activityMutate('/checkin', { method: 'POST' })) as CheckinStatus;
+}

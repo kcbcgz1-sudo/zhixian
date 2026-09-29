@@ -9,6 +9,7 @@ export default function TabsLayout() {
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <CustomTabBar {...(props as any)} />}>
       <Tabs.Screen name="index" />
+      <Tabs.Screen name="checkin" />
       <Tabs.Screen name="activities" />
       <Tabs.Screen name="messages" />
       <Tabs.Screen name="favorites" />

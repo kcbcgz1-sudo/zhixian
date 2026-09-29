@@ -41,6 +41,7 @@ model User {
   notifications Notification[]
   activities   Activity[]
   activitySignups ActivitySignup[]
+  checkins     CheckIn[]
   createdAt    DateTime      @default(now())
 }
 
@@ -184,5 +185,17 @@ model ActivitySignup {
   createdAt  DateTime @default(now())
 
   @@unique([activityId, userId])
+  @@index([userId])
+}
+
+// 每日签到(打卡)
+model CheckIn {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  day       String   // YYYY-MM-DD (Asia/Shanghai)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, day])
   @@index([userId])
 }

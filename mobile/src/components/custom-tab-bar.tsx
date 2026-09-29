@@ -1,7 +1,6 @@
-// 知闲 · 커스텀 하단 탭바 (초록 바 + 중앙 발행 FAB + 消息 안읽음 배지)
+// 知闲 · 커스텀 하단 탭바 (초록 바 + 중앙 约伴 메인버튼 + 消息 안읽음 배지)
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,18 +9,16 @@ import { Brand } from '@/constants/brand';
 import { notifUnreadCount } from '@/data/api';
 import { useAuth } from '@/data/auth';
 
-// 탭 이름 → 아이콘 매핑
+// 탭 이름 → 아이콘 매핑 (하단바에 표시되는 탭만)
 const ICONS: Record<string, { on: keyof typeof Ionicons.glyphMap; off: keyof typeof Ionicons.glyphMap }> = {
   index: { on: 'home', off: 'home-outline' },
-  activities: { on: 'people', off: 'people-outline' },
-  mine: { on: 'person', off: 'person-outline' },
+  checkin: { on: 'calendar', off: 'calendar-outline' },
   messages: { on: 'chatbubble', off: 'chatbubble-outline' },
-  favorites: { on: 'bookmark', off: 'bookmark-outline' },
+  mine: { on: 'person', off: 'person-outline' },
 };
 
 export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { user } = useAuth();
   const [unread, setUnread] = useState(0);
 
@@ -44,12 +41,21 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       alive = false;
       clearInterval(t);
     };
-    // 탭 전환 시(state.index)에도 갱신 → 消息 읽고 나오면 배지 반영
   }, [user?.id, state.index]);
 
   const routes = state.routes.filter((r) => ICONS[r.name]);
   const left = routes.slice(0, 2);
   const right = routes.slice(2);
+
+  // 가운데 메인버튼 = 约伴(activities)
+  const actIndex = state.routes.findIndex((r) => r.name === 'activities');
+  const actFocused = actIndex >= 0 && state.index === actIndex;
+  const goActivities = () => {
+    const target = state.routes[actIndex];
+    if (!target) return;
+    const event = navigation.emit({ type: 'tabPress', target: target.key, canPreventDefault: true });
+    if (!actFocused && !event.defaultPrevented) navigation.navigate('activities' as never);
+  };
 
   const renderTab = (route: (typeof routes)[number]) => {
     const index = state.routes.findIndex((r) => r.key === route.key);
@@ -84,12 +90,17 @@ export default function CustomTabBar({ state, navigation }: BottomTabBarProps) {
     <View style={[styles.wrap, { paddingBottom: insets.bottom || 10 }]}>
       <View style={styles.row}>
         {left.map(renderTab)}
-        <View style={styles.fabSlot} />
+        <View style={styles.fabSlot}>
+          <Text style={styles.fabLabel}>约伴</Text>
+        </View>
         {right.map(renderTab)}
       </View>
 
-      <Pressable style={styles.fab} onPress={() => router.push('/publish')} hitSlop={8}>
-        <Ionicons name="add" size={34} color={Brand.green} />
+      <Pressable
+        style={[styles.fab, actFocused && styles.fabActive]}
+        onPress={goActivities}
+        hitSlop={8}>
+        <Ionicons name="people" size={30} color={actFocused ? '#FFFFFF' : Brand.green} />
       </Pressable>
     </View>
   );
@@ -118,7 +129,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-  fabSlot: { width: 72 },
+  fabSlot: { width: 72, alignItems: 'center', justifyContent: 'flex-end', height: 40 },
+  fabLabel: { color: '#FFFFFF', fontSize: 11, fontWeight: '800', marginBottom: 1 },
   fab: {
     position: 'absolute',
     top: -22,
@@ -137,4 +149,5 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: Brand.green,
   },
+  fabActive: { backgroundColor: Brand.greenDark, borderColor: '#FFFFFF' },
 });
