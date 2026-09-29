@@ -13,11 +13,11 @@ export class AiPublicController {
 
   @Post('assist')
   async assist(
-    @Body() b: { input?: string; category?: string; city?: string },
+    @Body() b: { input?: string; category?: string; city?: string; images?: string[] },
     @Req() req: Request,
   ) {
     const uid = this.auth.verifyToken(req.headers['authorization']);
     if (!uid) throw new ForbiddenException('请先登录');
-    return this.ai.assist(uid, b?.input || '', b?.category, b?.city);
+    return this.ai.assist(uid, b?.input || '', b?.category, b?.city, b?.images);
   }
 }

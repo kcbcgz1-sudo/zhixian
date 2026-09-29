@@ -93,14 +93,29 @@ export default function PostNewScreen() {
       router.push('/login' as any);
       return;
     }
-    if (body.trim().length < 4) {
-      Alert.alert('提示', '先写几句你的想法或经历（去了哪、路况、停车、花费、感受…），AI 再帮你整理');
+    const hasImage = existingMedia.some((m) => m.type === 'image') || assets.some((a) => a.type !== 'video');
+    if (body.trim().length < 4 && !hasImage) {
+      Alert.alert('提示', '先写几句想法，或先加一张照片，AI 再帮你整理（去了哪、路况、停车、感受…）');
       return;
     }
     setAiBusy(true);
     try {
+      // 이미지 URL 수집: 이미 올라간 것 + 새로 고른 이미지 업로드(축소·압축)
+      let imageUrls = existingMedia.filter((m) => m.type === 'image').map((m) => m.url);
+      if (assets.length) {
+        const uploaded: { url: string; type: string }[] = [];
+        for (const a of assets) {
+          const isVideo = a.type === 'video';
+          const uri = isVideo ? a.uri : await shrinkImage(a.uri, a.width, a.height);
+          const r = await uploadMedia({ uri, fileName: a.fileName, mimeType: isVideo ? a.mimeType : 'image/jpeg' });
+          uploaded.push(r);
+        }
+        setExistingMedia((prev) => [...prev, ...uploaded]);
+        setAssets([]);
+        imageUrls = [...imageUrls, ...uploaded.filter((m) => m.type === 'image').map((m) => m.url)];
+      }
       const catName = cats.find((c) => c.code === category)?.name;
-      const d = await aiAssist(body.trim(), catName, city);
+      const d = await aiAssist(body.trim(), catName, city, imageUrls.slice(0, 3));
       setBody(d.body);
       if (!title.trim()) setTitle(d.title);
     } catch (e: any) {
@@ -266,7 +281,7 @@ export default function PostNewScreen() {
             )}
             <Text style={styles.aiBtnText}>{aiBusy ? 'AI 整理中…' : 'AI 帮我整理成干货'}</Text>
           </Pressable>
-          <Text style={styles.aiHint}>不想长篇写？随便写几句，AI 帮你整理成通顺的干货帖（会保留你说的内容，不乱编）。</Text>
+          <Text style={styles.aiHint}>写几句想法、或先加照片，AI 会结合照片帮你整理成干货帖（保留你说的，不乱编）。</Text>
 
           <Text style={styles.label}>图片 / 视频</Text>
           <View style={styles.mediaWrap}>

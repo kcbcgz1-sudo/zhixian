@@ -6,6 +6,7 @@ import { join } from 'path';
 const KEY = process.env.DASHSCOPE_API_KEY || '';
 const QWEN_BASE = process.env.DASHSCOPE_QWEN_BASE || 'https://dashscope.aliyuncs.com/compatible-mode/v1';
 const QWEN_MODEL = process.env.DASHSCOPE_QWEN_MODEL || 'qwen-plus';
+const QWEN_VL_MODEL = process.env.DASHSCOPE_QWEN_VL_MODEL || 'qwen-vl-max';
 const WANX_CREATE = process.env.DASHSCOPE_WANX_CREATE || 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis';
 const WANX_TASK = process.env.DASHSCOPE_WANX_TASK || 'https://dashscope.aliyuncs.com/api/v1/tasks';
 const WANX_MODEL = process.env.DASHSCOPE_WANX_MODEL || 'wanx2.1-t2i-turbo';
@@ -77,19 +78,31 @@ export class AiService {
   }
 
   // 공통 Qwen 호출 + JSON 파싱
-  private async chatDraft(sys: string, usr: string) {
+  private async chatDraft(
+    sys: string,
+    usr: string,
+    opts: { images?: string[]; model?: string; jsonMode?: boolean } = {},
+  ) {
+    const images = opts.images ?? [];
+    const userContent: any = images.length
+      ? [
+          { type: 'text', text: usr },
+          ...images.slice(0, 3).map((u) => ({ type: 'image_url', image_url: { url: u } })),
+        ]
+      : usr;
+    const payload: any = {
+      model: opts.model || QWEN_MODEL,
+      messages: [
+        { role: 'system', content: sys },
+        { role: 'user', content: userContent },
+      ],
+      temperature: 0.8,
+    };
+    if (opts.jsonMode !== false) payload.response_format = { type: 'json_object' };
     const res = await fetch(`${QWEN_BASE}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${KEY}` },
-      body: JSON.stringify({
-        model: QWEN_MODEL,
-        messages: [
-          { role: 'system', content: sys },
-          { role: 'user', content: usr },
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.8,
-      }),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const txt = await res.text();
@@ -125,21 +138,27 @@ export class AiService {
   }
 
   // 회원용: 초안/메모를 干货 형식으로 정리(사실 보존, 지어내기 금지)
-  async assist(userId: string, input: string, category?: string, city?: string) {
+  async assist(userId: string, input: string, category?: string, city?: string, images?: string[]) {
     this.ensureKey();
     const t = (input || '').trim();
-    if (t.length < 4) throw new BadRequestException('请先写几句你的想法或经历，AI再帮你整理');
+    const imgs = Array.isArray(images) ? images.filter(Boolean).slice(0, 3) : [];
+    if (t.length < 4 && imgs.length === 0)
+      throw new BadRequestException('请先写几句你的想法，或先上传照片，AI再帮你整理');
     this.checkRate(userId);
     const sys =
       '你是"知闲"App的写作助手。用户是45-55岁的中老年户外爱好者（钓鱼/登山/郊游）。' +
-      '把用户零散的想法或草稿整理成结构清晰、真实、易读的"干货"帖。规则：忠实保留用户提供的事实与经历；' +
-      '可补充常见结构（路况/交通停车/门票收费/适合人群/避坑提醒/最佳时间）作为提示，但绝不编造用户没提到的具体数字、电话、地址等信息，不确定处用"建议提前确认"；' +
-      '语气亲切朴实；不含广告或联系方式。只输出JSON。';
+      '把用户的文字' + (imgs.length ? '和照片' : '') + '整理成结构清晰、真实、易读的"干货"帖。规则：忠实保留用户提供的事实；' +
+      (imgs.length
+        ? '可以描述照片里真实可见的场景、环境、天气、设施、人流等，但不要编造照片和文字之外的信息（如具体价格、电话、地址、距离）；'
+        : '可补充常见结构（路况/交通停车/门票收费/适合人群/避坑提醒/最佳时间）作为提示，但绝不编造用户没提到的具体数字、电话、地址等信息；') +
+      '不确定处用"建议提前确认"；语气亲切朴实；不含广告或联系方式。只输出JSON。';
     const usr =
-      `以下是用户的草稿或想法，请整理成一篇干货帖：「${t}」` +
+      (t ? `用户的文字：「${t}」。` : '用户没有写文字，请主要根据照片内容来写。') +
+      (imgs.length ? '请结合上传的照片一起写，描述照片能看到的真实内容。' : '') +
       (city ? `（城市：${city}）` : '') +
       (category ? `（分类：${category}）` : '') +
-      '。输出JSON：title(不超过20字), body(150-350字, 可分段, 结尾可含2-4个#标签), tags(3-6个不带#)。尽量基于用户内容，不要长篇编造。只输出JSON。';
+      '输出JSON：title(不超过20字), body(150-350字, 可分段, 结尾可含2-4个#标签), tags(3-6个不带#)。基于用户内容和照片，不要长篇编造。只输出JSON。';
+    if (imgs.length) return this.chatDraft(sys, usr, { images: imgs, model: QWEN_VL_MODEL, jsonMode: false });
     return this.chatDraft(sys, usr);
   }
 
