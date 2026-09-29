@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Brand, F, R, S } from '@/constants/brand';
 import { injectThinBar } from '@/constants/thinbar';
 import { createPost, fetchCategories, uploadMedia, type ApiCategory } from '@/data/api';
+import { shrinkImage } from '@/data/image';
 import { useAuth } from '@/data/auth';
 import { type Category } from '@/data/seed';
 import RegionInline from '@/components/region-inline';
@@ -103,7 +104,13 @@ export default function PostNewScreen() {
     try {
       const media = [];
       for (const a of assets) {
-        const r = await uploadMedia({ uri: a.uri, fileName: a.fileName, mimeType: a.mimeType });
+        const isVideo = a.type === 'video';
+        const uri = isVideo ? a.uri : await shrinkImage(a.uri, a.width, a.height);
+        const r = await uploadMedia({
+          uri,
+          fileName: a.fileName,
+          mimeType: isVideo ? a.mimeType : 'image/jpeg',
+        });
         media.push(r);
       }
       await createPost({

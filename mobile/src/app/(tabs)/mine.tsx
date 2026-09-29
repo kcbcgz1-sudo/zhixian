@@ -2,6 +2,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import ImageCropper from '@/components/image-cropper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -35,6 +36,8 @@ export default function MineScreen() {
   const [postCount, setPostCount] = useState<number | null>(null);
   const [busy, setBusy] = useState<null | 'avatar' | 'cover'>(null);
 
+  const [crop, setCrop] = useState<null | { uri: string; w: number; h: number; kind: 'avatar' | 'cover' }>(null);
+
   async function pickAndUpload(kind: 'avatar' | 'cover') {
     if (!user) {
       Alert.alert('请先登录', '登录后才能修改头像和背景');
@@ -47,17 +50,19 @@ export default function MineScreen() {
       Alert.alert('需要相册权限', '请在系统设置中允许访问相册');
       return;
     }
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: kind === 'avatar' ? [1, 1] : [16, 9],
-      quality: 0.85,
-    });
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
     if (res.canceled) return;
+    const a = res.assets[0];
+    setCrop({ uri: a.uri, w: a.width || 1000, h: a.height || 1000, kind });
+  }
+
+  async function onCropped(outUri: string) {
+    const kind = crop?.kind;
+    setCrop(null);
+    if (!kind) return;
     setBusy(kind);
     try {
-      const a = res.assets[0];
-      const up = await uploadMedia({ uri: a.uri, fileName: a.fileName, mimeType: a.mimeType });
+      const up = await uploadMedia({ uri: outUri, fileName: `${kind}.jpg`, mimeType: 'image/jpeg' });
       await updateProfile(kind === 'avatar' ? { avatar: up.url } : { coverImage: up.url });
       await refresh();
     } catch (e: any) {
@@ -184,6 +189,19 @@ export default function MineScreen() {
             <Ionicons name="log-out-outline" size={18} color={Brand.text} />
           </Pressable>
         </ScrollView>
+      )}
+
+      {crop && (
+        <ImageCropper
+          visible
+          uri={crop.uri}
+          imgW={crop.w}
+          imgH={crop.h}
+          aspect={crop.kind === 'avatar' ? 1 : 2.5}
+          outWidth={crop.kind === 'avatar' ? 512 : 1400}
+          onCancel={() => setCrop(null)}
+          onDone={onCropped}
+        />
       )}
     </View>
   );
