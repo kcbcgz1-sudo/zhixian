@@ -51,6 +51,7 @@ export class CheckinService {
       total: days.size,
       points,
       today,
+      days: [...days].sort(),
     };
   }
 

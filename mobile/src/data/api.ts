@@ -481,6 +481,7 @@ export type CheckinStatus = {
   today?: string;
   already?: boolean;
   gained?: number;
+  days?: string[];
 };
 export async function checkinStatus(): Promise<CheckinStatus> {
   return (await authFetch('/checkin/status')) as CheckinStatus;
