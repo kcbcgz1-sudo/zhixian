@@ -19,7 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
 import { injectThinBar } from '@/constants/thinbar';
-import { createPost, fetchCategories, fetchPost, updatePost, uploadMedia, type ApiCategory } from '@/data/api';
+import { aiAssist, createPost, fetchCategories, fetchPost, updatePost, uploadMedia, type ApiCategory } from '@/data/api';
 import { shrinkImage } from '@/data/image';
 import { useAuth } from '@/data/auth';
 import { type Category } from '@/data/seed';
@@ -85,6 +85,30 @@ export default function PostNewScreen() {
       })
       .catch(() => {});
   }, [id]);
+
+  const [aiBusy, setAiBusy] = useState(false);
+  async function onAiAssist() {
+    if (!user) {
+      Alert.alert('请先登录', 'AI 整理需要登录账号');
+      router.push('/login' as any);
+      return;
+    }
+    if (body.trim().length < 4) {
+      Alert.alert('提示', '先写几句你的想法或经历（去了哪、路况、停车、花费、感受…），AI 再帮你整理');
+      return;
+    }
+    setAiBusy(true);
+    try {
+      const catName = cats.find((c) => c.code === category)?.name;
+      const d = await aiAssist(body.trim(), catName, city);
+      setBody(d.body);
+      if (!title.trim()) setTitle(d.title);
+    } catch (e: any) {
+      Alert.alert('整理失败', String(e?.message ?? '请重试'));
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   async function pick() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -234,6 +258,15 @@ export default function PostNewScreen() {
             multiline
             textAlignVertical="top"
           />
+          <Pressable style={[styles.aiBtn, aiBusy && { opacity: 0.6 }]} onPress={onAiAssist} disabled={aiBusy}>
+            {aiBusy ? (
+              <ActivityIndicator color={Brand.green} size="small" />
+            ) : (
+              <Ionicons name="sparkles" size={16} color={Brand.green} />
+            )}
+            <Text style={styles.aiBtnText}>{aiBusy ? 'AI 整理中…' : 'AI 帮我整理成干货'}</Text>
+          </Pressable>
+          <Text style={styles.aiHint}>不想长篇写？随便写几句，AI 帮你整理成通顺的干货帖（会保留你说的内容，不乱编）。</Text>
 
           <Text style={styles.label}>图片 / 视频</Text>
           <View style={styles.mediaWrap}>
@@ -335,6 +368,20 @@ const styles = StyleSheet.create({
     fontSize: F.body,
     color: Brand.text,
   },
+  aiBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: S.sm,
+    borderWidth: 1.5,
+    borderColor: Brand.green,
+    backgroundColor: Brand.greenSoft,
+    borderRadius: R.pill,
+    height: 44,
+    marginTop: S.sm,
+  },
+  aiBtnText: { color: Brand.greenDark, fontSize: F.sub, fontWeight: '800' },
+  aiHint: { fontSize: F.small, color: Brand.textSub, marginTop: 6, lineHeight: 18 },
   bodyInput: {
     borderWidth: 1,
     borderColor: Brand.border,

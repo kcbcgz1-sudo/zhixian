@@ -523,6 +523,12 @@ export async function aiDraft(topic: string, category?: string, city?: string): 
     body: JSON.stringify({ topic, category, city }),
   })) as AiDraft;
 }
+export async function aiAssist(input: string, category?: string, city?: string): Promise<AiDraft> {
+  return (await activityMutate('/ai/assist', {
+    method: 'POST',
+    body: JSON.stringify({ input, category, city }),
+  })) as AiDraft;
+}
 export async function aiImage(prompt: string): Promise<{ url: string; type: string }> {
   return (await activityMutate('/admin/ai/image', {
     method: 'POST',
