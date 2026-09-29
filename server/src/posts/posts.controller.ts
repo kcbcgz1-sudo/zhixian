@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { AuthService } from '../auth/auth.service.js';
 import { PostsService, type CreatePostDto } from './posts.service.js';
@@ -49,6 +49,12 @@ export class PostsController {
   del(@Param('id') id: string, @Req() req: Request) {
     const uid = this.auth.verifyToken(req.headers['authorization']);
     return this.posts.deleteOwnPost(id, uid);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: CreatePostDto, @Req() req: Request) {
+    const uid = this.auth.verifyToken(req.headers['authorization']);
+    return this.posts.updatePost(id, dto, uid);
   }
 
   @Post()

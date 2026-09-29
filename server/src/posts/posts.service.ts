@@ -176,6 +176,44 @@ export class PostsService {
     return this.shapeList(posts, userId);
   }
 
+  async updatePost(postId: string, dto: CreatePostDto, userId?: string | null) {
+    if (!userId) throw new ForbiddenException('请先登录');
+    const post = await this.prisma.post.findUnique({ where: { id: postId }, include: { author: true } });
+    if (!post) throw new NotFoundException('post not found');
+    const me = await this.prisma.user.findUnique({ where: { id: userId } });
+    const isAdmin = (me?.role ?? 'user') === 'admin';
+    if (!isAdmin && post.authorId !== userId) throw new ForbiddenException('只能编辑自己的内容');
+    if (!dto.title?.trim() || !dto.body?.trim()) throw new BadRequestException('title/body required');
+    const cat = dto.category ? String(dto.category) : post.category;
+    const catRow = await this.prisma.category.findFirst({ where: { code: cat, active: true } });
+    if (!catRow) throw new BadRequestException('bad category');
+    const authorLevel = (post.author as any)?.level ?? 1;
+    const authorRole = (post.author as any)?.role ?? 'user';
+    if (!isAdmin && authorRole !== 'admin' && authorLevel < catRow.writeMinLevel) {
+      throw new ForbiddenException(`该分类需要 Lv${catRow.writeMinLevel}`);
+    }
+    const body = dto.body.trim();
+    const tags = Array.from(new Set([...(dto.tags ?? []), ...extractHashtags(body)]));
+    const media = Array.isArray(dto.media) ? dto.media : [];
+    const cover = media.find((m) => m.type === 'image')?.url ?? media[0]?.url ?? null;
+    const prev = ((post.attributes ?? {}) as Record<string, any>);
+    const updated = await this.prisma.post.update({
+      where: { id: postId },
+      data: {
+        category: cat,
+        title: dto.title.trim(),
+        body,
+        province: dto.province?.trim() || post.province || '广东',
+        city: dto.city?.trim() || post.city || '广州',
+        district: dto.district?.trim() || null,
+        attributes: { ...prev, tags, media, cover },
+        qualityScore: media.length > 0 ? Math.max(post.qualityScore ?? 0, 30) : (post.qualityScore ?? 0),
+      },
+      include: { author: true },
+    });
+    return this.shape(updated, { mine: post.authorId === userId });
+  }
+
   async deleteOwnPost(postId: string, userId?: string | null) {
     if (!userId) throw new ForbiddenException('请先登录');
     const post = await this.prisma.post.findUnique({ where: { id: postId } });

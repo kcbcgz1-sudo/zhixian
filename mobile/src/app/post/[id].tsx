@@ -218,9 +218,13 @@ export default function PostDetail() {
           <Pressable onPress={() => router.back()} hitSlop={10}>
             <Ionicons name="arrow-back" size={26} color={Brand.text} />
           </Pressable>
-          <Pressable hitSlop={10}>
-            <Ionicons name="search" size={24} color={Brand.text} />
-          </Pressable>
+          {canDeletePost ? (
+            <Pressable onPress={() => post && router.push(`/post-new?id=${post.id}` as any)} hitSlop={10}>
+              <Ionicons name="create-outline" size={24} color={Brand.text} />
+            </Pressable>
+          ) : (
+            <View style={{ width: 24 }} />
+          )}
         </View>
 
         {loading ? (

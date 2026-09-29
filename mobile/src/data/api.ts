@@ -102,6 +102,15 @@ export async function createPost(data: NewPost): Promise<Post> {
   if (!res.ok) throw new Error(await parseError(res, '发布失败'));
   return (await res.json()) as Post;
 }
+export async function updatePost(id: string, data: NewPost): Promise<Post> {
+  const res = await fetch(`${API_BASE}/posts/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(await parseError(res, '保存失败'));
+  return (await res.json()) as Post;
+}
 
 // ── 댓글 ──
 export type Comment = {

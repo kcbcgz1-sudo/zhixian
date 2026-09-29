@@ -2,7 +2,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -19,7 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
 import { injectThinBar } from '@/constants/thinbar';
-import { createPost, fetchCategories, uploadMedia, type ApiCategory } from '@/data/api';
+import { createPost, fetchCategories, fetchPost, updatePost, uploadMedia, type ApiCategory } from '@/data/api';
 import { shrinkImage } from '@/data/image';
 import { useAuth } from '@/data/auth';
 import { type Category } from '@/data/seed';
@@ -31,6 +31,8 @@ type Asset = ImagePicker.ImagePickerAsset;
 export default function PostNewScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const editing = !!id;
   const [cats, setCats] = useState<ApiCategory[]>([]);
   const [category, setCategory] = useState<Category>('');
   const [province, setProvince] = useState(DEFAULT_PROVINCE);
@@ -54,6 +56,7 @@ export default function PostNewScreen() {
   }, [user?.id]);
   // 선택된 카테고리가 레벨 부족이면 발제 가능한 첫 카테고리로 전환
   useEffect(() => {
+    if (editing) return;
     if (!cats.length || !user || user.role === 'admin') return;
     const cur = cats.find((c) => c.code === category);
     if (cur && user.level < cur.writeMinLevel) {
@@ -66,6 +69,22 @@ export default function PostNewScreen() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [existingMedia, setExistingMedia] = useState<{ url: string; type: string }[]>([]);
+
+  useEffect(() => {
+    if (!id) return;
+    fetchPost(String(id))
+      .then((p: any) => {
+        if (p.category) setCategory(p.category);
+        setTitle(p.title || '');
+        setBody(p.body || '');
+        if (p.province) setProvince(p.province);
+        if (p.city) setCity(p.city);
+        setDistrict(p.district || '');
+        setExistingMedia(Array.isArray(p.media) ? p.media : []);
+      })
+      .catch(() => {});
+  }, [id]);
 
   async function pick() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -102,7 +121,7 @@ export default function PostNewScreen() {
     }
     setSubmitting(true);
     try {
-      const media = [];
+      const uploaded = [];
       for (const a of assets) {
         const isVideo = a.type === 'video';
         const uri = isVideo ? a.uri : await shrinkImage(a.uri, a.width, a.height);
@@ -111,9 +130,10 @@ export default function PostNewScreen() {
           fileName: a.fileName,
           mimeType: isVideo ? a.mimeType : 'image/jpeg',
         });
-        media.push(r);
+        uploaded.push(r);
       }
-      await createPost({
+      const media = [...existingMedia, ...uploaded];
+      const payload = {
         category,
         title: title.trim(),
         body: body.trim(),
@@ -121,12 +141,17 @@ export default function PostNewScreen() {
         city,
         district: district || undefined,
         media,
-      });
+      };
+      if (editing) {
+        await updatePost(String(id), payload as any);
+      } else {
+        await createPost(payload as any);
+      }
       setDone(true);
-      setTimeout(() => router.replace('/' as any), 1000);
-    } catch (e) {
+      setTimeout(() => router.replace((editing ? `/post/${id}` : '/') as any), 1000);
+    } catch (e: any) {
       setSubmitting(false);
-      Alert.alert('发布失败', '请检查网络后重试');
+      Alert.alert(editing ? '保存失败' : '发布失败', String(e?.message ?? '请检查网络后重试'));
     }
   }
 
@@ -137,7 +162,7 @@ export default function PostNewScreen() {
           <Pressable onPress={() => router.back()} hitSlop={10}>
             <Ionicons name="close" size={26} color={Brand.text} />
           </Pressable>
-          <Text style={styles.barTitle}>结构化发布</Text>
+          <Text style={styles.barTitle}>{editing ? '编辑内容' : '结构化发布'}</Text>
           <Pressable
             onPress={submit}
             disabled={submitting}
@@ -145,7 +170,7 @@ export default function PostNewScreen() {
             {submitting ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.submitText}>发布</Text>
+              <Text style={styles.submitText}>{editing ? '保存' : '发布'}</Text>
             )}
           </Pressable>
         </View>
@@ -212,6 +237,21 @@ export default function PostNewScreen() {
 
           <Text style={styles.label}>图片 / 视频</Text>
           <View style={styles.mediaWrap}>
+            {existingMedia.map((m, i) => (
+              <View key={`ex-${i}`} style={styles.thumb}>
+                {m.type === 'video' ? (
+                  <View style={[styles.thumbImg, styles.videoThumb]}>
+                    <Ionicons name="play-circle" size={30} color="#fff" />
+                    <Text style={styles.videoLabel}>视频</Text>
+                  </View>
+                ) : (
+                  <Image source={{ uri: m.url }} style={styles.thumbImg} contentFit="cover" />
+                )}
+                <Pressable style={styles.remove} onPress={() => setExistingMedia((prev) => prev.filter((_, idx) => idx !== i))} hitSlop={6}>
+                  <Ionicons name="close-circle" size={22} color="#333" />
+                </Pressable>
+              </View>
+            ))}
             {assets.map((a, i) => (
               <View key={i} style={styles.thumb}>
                 {a.type === 'video' ? (
@@ -242,7 +282,7 @@ export default function PostNewScreen() {
         <View style={styles.overlay}>
           <View style={styles.successCard}>
             <Ionicons name="checkmark-circle" size={56} color={Brand.green} />
-            <Text style={styles.successText}>发布成功</Text>
+            <Text style={styles.successText}>{editing ? '保存成功' : '发布成功'}</Text>
           </View>
         </View>
       )}
