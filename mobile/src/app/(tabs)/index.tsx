@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
 import { injectThinBar } from '@/constants/thinbar';
-import { DEFAULT_CITY, DEFAULT_PROVINCE } from '@/constants/regions';
+import { DEFAULT_PROVINCE } from '@/constants/regions';
 import RegionModal from '@/components/region-modal';
 import { deletePost, fetchCategories, fetchPosts } from '@/data/api';
 import { useAuth } from '@/data/auth';
@@ -40,7 +40,7 @@ export default function HomeScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [province, setProvince] = useState(DEFAULT_PROVINCE);
-  const [city, setCity] = useState(DEFAULT_CITY);
+  const [city, setCity] = useState('');
   const [cityModal, setCityModal] = useState(false);
 
   useEffect(() => {
@@ -53,7 +53,6 @@ export default function HomeScreen() {
   useEffect(() => injectThinBar(), []);
   useEffect(() => {
     if (user) {
-      if (user.city) setCity(user.city);
       if (user.province) setProvince(user.province);
     }
   }, [user?.id]);
@@ -119,7 +118,7 @@ export default function HomeScreen() {
         <View style={styles.locationRow}>
           <Pressable style={styles.locBtn} onPress={() => setCityModal(true)} hitSlop={8}>
             <Ionicons name="location-outline" size={16} color={Brand.textSub} />
-            <Text style={styles.location}>{province}·{city}</Text>
+            <Text style={styles.location}>{city ? `${province}·${city}` : '全部城市'}</Text>
             <Ionicons name="chevron-down" size={14} color={Brand.textSub} />
           </Pressable>
           <View style={{ flex: 1 }} />
@@ -191,9 +190,10 @@ export default function HomeScreen() {
         visible={cityModal}
         province={province}
         city={city}
+        allowAll
         onClose={() => setCityModal(false)}
         onSelect={(p, c) => {
-          setProvince(p);
+          if (p) setProvince(p);
           setCity(c);
         }}
       />

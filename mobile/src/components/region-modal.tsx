@@ -13,12 +13,14 @@ export default function RegionModal({
   city,
   onClose,
   onSelect,
+  allowAll = false,
 }: {
   visible: boolean;
   province: string;
   city: string;
   onClose: () => void;
   onSelect: (province: string, city: string) => void;
+  allowAll?: boolean;
 }) {
   const [prov, setProv] = useState(province);
   const cities = citiesOf(prov);
@@ -34,6 +36,17 @@ export default function RegionModal({
                 <Ionicons name="close" size={24} color={Brand.text} />
               </Pressable>
             </View>
+            {allowAll && (
+              <Pressable
+                onPress={() => {
+                  onSelect('', '');
+                  onClose();
+                }}
+                style={[styles.allBtn, !city && styles.allBtnOn]}>
+                <Ionicons name="globe-outline" size={18} color={!city ? '#fff' : Brand.greenDark} />
+                <Text style={[styles.allText, !city && styles.allTextOn]}>全部城市（不限）</Text>
+              </Pressable>
+            )}
             <View style={styles.body}>
               {/* 省 */}
               <ScrollView style={styles.provCol} showsVerticalScrollIndicator={false}>
@@ -83,6 +96,20 @@ const styles = StyleSheet.create({
     borderBottomColor: Brand.border,
   },
   title: { fontSize: F.h2, fontWeight: '800', color: Brand.text },
+  allBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: S.sm,
+    marginHorizontal: S.lg,
+    marginTop: S.md,
+    paddingVertical: 12,
+    paddingHorizontal: S.lg,
+    borderRadius: R.md,
+    backgroundColor: Brand.greenSoft,
+  },
+  allBtnOn: { backgroundColor: Brand.green },
+  allText: { fontSize: F.body, fontWeight: '800', color: Brand.greenDark },
+  allTextOn: { color: '#fff' },
   body: { flexDirection: 'row', height: 380 },
   provCol: { width: 110, backgroundColor: Brand.bg },
   provItem: { paddingVertical: 14, paddingHorizontal: S.lg },
