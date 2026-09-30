@@ -1,7 +1,8 @@
 // 知闲 · 관리자 AI 内容生成 (通义千问 초안 + 通义万相 配图 → 검수 → 발행)
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -24,15 +25,25 @@ import {
   aiDraft,
   aiImage,
   aiStatus,
+  autogenPublish,
   createPost,
   fetchCategories,
+  fetchPost,
+  updatePost,
+  uploadMedia,
   type ApiCategory,
 } from '@/data/api';
+import { shrinkImage } from '@/data/image';
 import { useAuth } from '@/data/auth';
 
 export default function AdminAiScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const params = useLocalSearchParams<{ pendingId?: string }>();
+  const pendingId = params.pendingId ? String(params.pendingId) : '';
+  const editingPending = !!pendingId;
+  const [uploads, setUploads] = useState<{ url: string; type: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [hasKey, setHasKey] = useState<boolean | null>(null);
   const [cats, setCats] = useState<ApiCategory[]>([]);
   const [category, setCategory] = useState('');
@@ -63,11 +74,26 @@ export default function AdminAiScreen() {
     aiStatus().then((r) => setHasKey(r.hasKey)).catch(() => setHasKey(false));
   }, [user?.id]);
   useEffect(() => {
-    if (user) {
+    if (user && !pendingId) {
       if (user.city) setCity(user.city);
       if (user.province) setProvince(user.province);
     }
   }, [user?.id]);
+  useEffect(() => {
+    if (!pendingId) return;
+    fetchPost(pendingId)
+      .then((p: any) => {
+        setTitle(p.title || '');
+        setBody(p.body || '');
+        setTagsText((p.tags || []).join(' '));
+        if (p.category) setCategory(p.category);
+        if (p.city) setCity(p.city);
+        if (p.province) setProvince(p.province);
+        const m = Array.isArray(p.media) ? p.media : [];
+        setUploads(m.filter((x: any) => x && x.type === 'image'));
+      })
+      .catch(() => {});
+  }, [pendingId]);
 
   const catName = (code: string) => cats.find((c) => c.code === code)?.name ?? code;
 
@@ -101,13 +127,40 @@ export default function AdminAiScreen() {
     }
   }
 
+  async function addPhotos() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) { Alert.alert('需要相册权限', '请在系统设置中允许访问相册'); return; }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      quality: 0.8,
+    });
+    if (res.canceled) return;
+    setUploading(true);
+    try {
+      for (const a of res.assets) {
+        const uri = await shrinkImage(a.uri, a.width, a.height);
+        const r = await uploadMedia({ uri, fileName: a.fileName, mimeType: 'image/jpeg' });
+        setUploads((prev) => [...prev, r as any].slice(0, 9));
+      }
+    } catch (e: any) {
+      Alert.alert('上传失败', String(e?.message ?? '请重试'));
+    } finally {
+      setUploading(false);
+    }
+  }
+  function removeUpload(i: number) {
+    setUploads((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
   async function onPublish() {
     if (!title.trim() || !body.trim()) { Alert.alert('提示', '请先生成或填写标题和内容'); return; }
     if (!category) { Alert.alert('提示', '请选择分类'); return; }
     setPublishing(true);
     try {
       const tags = tagsText.split(/[\s,，]+/).map((t) => t.replace(/^#/, '').trim()).filter(Boolean);
-      await createPost({
+      const media = [...uploads, ...(imageUrl ? [{ url: imageUrl, type: 'image' }] : [])];
+      const payload = {
         category: category as any,
         title: title.trim(),
         body: body.trim(),
@@ -115,20 +168,29 @@ export default function AdminAiScreen() {
         city,
         district: district || undefined,
         tags,
-        media: imageUrl ? [{ url: imageUrl, type: 'image' }] : [],
-      });
-      setDone(true);
-      setTimeout(() => {
-        setTopic('');
-        setTitle('');
-        setBody('');
-        setTagsText('');
-        setImgPrompt('');
-        setImageUrl('');
-        setDone(false);
-      }, 1300);
+        media,
+      };
+      if (editingPending) {
+        await updatePost(pendingId, payload as any);
+        await autogenPublish(pendingId);
+        setDone(true);
+        setTimeout(() => router.replace('/admin-autogen' as any), 1200);
+      } else {
+        await createPost(payload as any);
+        setDone(true);
+        setTimeout(() => {
+          setTopic('');
+          setTitle('');
+          setBody('');
+          setTagsText('');
+          setImgPrompt('');
+          setImageUrl('');
+          setUploads([]);
+          setDone(false);
+        }, 1300);
+      }
     } catch (e: any) {
-      Alert.alert('发布失败', String(e?.message ?? '请重试'));
+      Alert.alert(editingPending ? '上架失败' : '发布失败', String(e?.message ?? '请重试'));
     } finally {
       setPublishing(false);
     }
@@ -141,11 +203,19 @@ export default function AdminAiScreen() {
           <Pressable onPress={() => router.back()} hitSlop={10}>
             <Ionicons name="arrow-back" size={26} color={Brand.text} />
           </Pressable>
-          <Text style={styles.barTitle}>AI 内容生成</Text>
+          <Text style={styles.barTitle}>{editingPending ? '编辑并上架' : 'AI 内容生成'}</Text>
           <View style={{ width: 26 }} />
         </View>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {editingPending && (
+            <View style={styles.pendingBanner}>
+              <Ionicons name="create-outline" size={18} color={Brand.green} />
+              <Text style={styles.pendingText}>
+                正在编辑「待审核」内容：可加实拍照片、用 AI 优化文字，保存后自动上架。
+              </Text>
+            </View>
+          )}
           {hasKey === false && (
             <View style={styles.warn}>
               <Ionicons name="alert-circle-outline" size={18} color={Brand.danger} />
@@ -188,7 +258,29 @@ export default function AdminAiScreen() {
           <Text style={styles.label}>标签（空格分隔）</Text>
           <TextInput value={tagsText} onChangeText={setTagsText} placeholder="例：登山 白云山 中老年友好" placeholderTextColor={Brand.textFaint} style={styles.input} />
 
-          <Text style={styles.label}>配图描述</Text>
+          <Text style={styles.label}>照片（实拍上传）</Text>
+          <View style={styles.photoRow}>
+            {uploads.map((m, i) => (
+              <View key={`${m.url}-${i}`} style={styles.thumbWrap}>
+                <Image source={{ uri: m.url }} style={styles.thumb} contentFit="cover" />
+                <Pressable style={styles.removeThumb} onPress={() => removeUpload(i)} hitSlop={6}>
+                  <Ionicons name="close-circle" size={22} color="#333" />
+                </Pressable>
+              </View>
+            ))}
+            {uploads.length < 9 && (
+              <Pressable style={styles.addPhoto} onPress={addPhotos} disabled={uploading}>
+                {uploading ? (
+                  <ActivityIndicator color={Brand.green} size="small" />
+                ) : (
+                  <Ionicons name="camera-outline" size={26} color={Brand.textSub} />
+                )}
+                <Text style={styles.addPhotoText}>{uploading ? '上传中' : '添加'}</Text>
+              </Pressable>
+            )}
+          </View>
+
+          <Text style={styles.label}>AI 配图（可选）</Text>
           <TextInput value={imgPrompt} onChangeText={setImgPrompt} placeholder="生成草稿后自动填充，可修改" placeholderTextColor={Brand.textFaint} style={styles.input} />
           <Pressable style={[styles.genBtnAlt, genImg && { opacity: 0.6 }]} onPress={onImage} disabled={genImg}>
             {genImg ? <ActivityIndicator color={Brand.green} size="small" /> : <Ionicons name="image-outline" size={18} color={Brand.green} />}
@@ -204,9 +296,13 @@ export default function AdminAiScreen() {
           )}
 
           <Pressable style={[styles.publishBtn, publishing && { opacity: 0.6 }]} onPress={onPublish} disabled={publishing}>
-            {publishing ? <ActivityIndicator color="#fff" /> : <Text style={styles.publishText}>发布到内容流</Text>}
+            {publishing ? <ActivityIndicator color="#fff" /> : <Text style={styles.publishText}>{editingPending ? '保存并上架' : '发布到内容流'}</Text>}
           </Pressable>
-          <Text style={styles.hint}>发布后作者为当前管理员账号。建议逐条审核内容真实性后再发布。</Text>
+          <Text style={styles.hint}>
+            {editingPending
+              ? '保存后该内容立即上架并公开展示，作者保持为原作者。'
+              : '发布后作者为当前管理员账号。建议逐条审核内容真实性后再发布。'}
+          </Text>
         </ScrollView>
       </SafeAreaView>
 
@@ -214,7 +310,7 @@ export default function AdminAiScreen() {
         <View style={styles.overlay} pointerEvents="none">
           <View style={styles.successCard}>
             <Ionicons name="checkmark-circle" size={56} color={Brand.green} />
-            <Text style={styles.successText}>发布成功</Text>
+            <Text style={styles.successText}>{editingPending ? '已上架' : '发布成功'}</Text>
           </View>
         </View>
       )}
@@ -246,6 +342,33 @@ const styles = StyleSheet.create({
     marginBottom: S.sm,
   },
   warnText: { flex: 1, fontSize: F.small, color: Brand.danger, lineHeight: 18 },
+  pendingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: S.sm,
+    backgroundColor: Brand.greenSoft ?? '#E7F5EF',
+    borderRadius: R.md,
+    padding: S.md,
+    marginBottom: S.sm,
+  },
+  pendingText: { flex: 1, fontSize: F.small, color: Brand.greenDark ?? Brand.text, lineHeight: 18 },
+  photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm, marginTop: S.xs ?? 4 },
+  thumbWrap: { width: 88, height: 88 },
+  thumb: { width: 88, height: 88, borderRadius: R.md, backgroundColor: Brand.bg },
+  removeThumb: { position: 'absolute', top: -8, right: -8, backgroundColor: '#fff', borderRadius: 999 },
+  addPhoto: {
+    width: 88,
+    height: 88,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: Brand.border,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    backgroundColor: Brand.bg,
+  },
+  addPhotoText: { fontSize: F.small, color: Brand.textSub },
   label: { fontSize: F.sub, fontWeight: '700', color: Brand.text, marginTop: S.md },
   input: {
     borderWidth: 1,

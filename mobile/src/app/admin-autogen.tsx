@@ -11,7 +11,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,7 +18,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Brand, F, R, S } from '@/constants/brand';
 import {
   autogenDiscard,
-  autogenEdit,
   autogenPending,
   autogenPublish,
   autogenPublishAll,
@@ -41,35 +39,6 @@ export default function AdminAutogenScreen() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmBulk, setConfirmBulk] = useState(false);
   const [bulking, setBulking] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draftTitle, setDraftTitle] = useState('');
-  const [draftBody, setDraftBody] = useState('');
-  const [savingEdit, setSavingEdit] = useState(false);
-
-  const startEdit = (p: PendingPost) => {
-    setEditingId(p.id);
-    setDraftTitle(p.title);
-    setDraftBody(p.body);
-  };
-  const cancelEdit = () => setEditingId(null);
-  const saveEdit = async (id: string) => {
-    if (!draftTitle.trim() || !draftBody.trim()) {
-      Alert.alert('提示', '标题和正文不能为空');
-      return;
-    }
-    setSavingEdit(true);
-    try {
-      await autogenEdit(id, draftTitle.trim(), draftBody.trim());
-      setList((prev) =>
-        prev.map((x) => (x.id === id ? { ...x, title: draftTitle.trim(), body: draftBody.trim() } : x)),
-      );
-      setEditingId(null);
-    } catch {
-      Alert.alert('提示', '保存失败，请重试');
-    } finally {
-      setSavingEdit(false);
-    }
-  };
 
   const onPublishAll = async () => {
     setBulking(true);
@@ -243,84 +212,44 @@ export default function AdminAutogenScreen() {
                   <Text style={styles.catTag}>{nameOf(p.category)}</Text>
                   <Text style={styles.itemMeta}>{p.createdAt}</Text>
                 </View>
-                {editingId === p.id ? (
-                  <>
-                    <TextInput
-                      style={styles.editTitle}
-                      value={draftTitle}
-                      onChangeText={setDraftTitle}
-                      placeholder="标题"
-                      placeholderTextColor={Brand.textFaint}
-                    />
-                    <TextInput
-                      style={styles.editBody}
-                      value={draftBody}
-                      onChangeText={setDraftBody}
-                      placeholder="正文"
-                      placeholderTextColor={Brand.textFaint}
-                      multiline
-                      textAlignVertical="top"
-                    />
-                    <View style={styles.itemBtns}>
-                      <Pressable style={styles.editBtn} onPress={cancelEdit} disabled={savingEdit}>
-                        <Text style={styles.editBtnText}>取消</Text>
-                      </Pressable>
-                      <View style={styles.rightBtns}>
-                        <Pressable
-                          style={[styles.publishBtn, savingEdit && { opacity: 0.5 }]}
-                          onPress={() => saveEdit(p.id)}
-                          disabled={savingEdit}>
-                          {savingEdit ? (
-                            <ActivityIndicator color="#fff" size="small" />
-                          ) : (
-                            <>
-                              <Ionicons name="save-outline" size={17} color="#fff" />
-                              <Text style={styles.publishText}>保存</Text>
-                            </>
-                          )}
-                        </Pressable>
-                      </View>
-                    </View>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.itemTitle}>{p.title}</Text>
-                    <Text style={styles.itemBody} selectable>
-                      {p.body}
-                    </Text>
-                    {p.tags.length > 0 && (
-                      <Text style={styles.itemTags}>{p.tags.map((t) => `#${t}`).join(' ')}</Text>
-                    )}
-                    <View style={styles.itemBtns}>
-                      <Pressable style={styles.editBtn} onPress={() => startEdit(p)} disabled={busyId === p.id}>
-                        <Ionicons name="create-outline" size={16} color={Brand.text} />
-                        <Text style={styles.editBtnText}>编辑</Text>
-                      </Pressable>
-                      <View style={styles.rightBtns}>
-                        <Pressable
-                          style={[styles.discardBtn, busyId === p.id && { opacity: 0.5 }]}
-                          onPress={() => onDiscard(p.id)}
-                          disabled={busyId === p.id}>
-                          <Ionicons name="trash-outline" size={17} color={Brand.danger} />
-                          <Text style={styles.discardText}>删除</Text>
-                        </Pressable>
-                        <Pressable
-                          style={[styles.publishBtn, busyId === p.id && { opacity: 0.5 }]}
-                          onPress={() => onPublish(p.id)}
-                          disabled={busyId === p.id}>
-                          {busyId === p.id ? (
-                            <ActivityIndicator color="#fff" size="small" />
-                          ) : (
-                            <>
-                              <Ionicons name="arrow-up-circle" size={18} color="#fff" />
-                              <Text style={styles.publishText}>上架</Text>
-                            </>
-                          )}
-                        </Pressable>
-                      </View>
-                    </View>
-                  </>
+                <Text style={styles.itemTitle}>{p.title}</Text>
+                <Text style={styles.itemBody} selectable>
+                  {p.body}
+                </Text>
+                {p.tags.length > 0 && (
+                  <Text style={styles.itemTags}>{p.tags.map((t) => `#${t}`).join(' ')}</Text>
                 )}
+                <View style={styles.itemBtns}>
+                  <Pressable
+                    style={styles.editBtn}
+                    onPress={() => router.push(`/admin-ai?pendingId=${p.id}` as any)}
+                    disabled={busyId === p.id}>
+                    <Ionicons name="create-outline" size={16} color={Brand.green} />
+                    <Text style={styles.editBtnText}>编辑·加图</Text>
+                  </Pressable>
+                  <View style={styles.rightBtns}>
+                    <Pressable
+                      style={[styles.discardBtn, busyId === p.id && { opacity: 0.5 }]}
+                      onPress={() => onDiscard(p.id)}
+                      disabled={busyId === p.id}>
+                      <Ionicons name="trash-outline" size={17} color={Brand.danger} />
+                      <Text style={styles.discardText}>删除</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.publishBtn, busyId === p.id && { opacity: 0.5 }]}
+                      onPress={() => onPublish(p.id)}
+                      disabled={busyId === p.id}>
+                      {busyId === p.id ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <>
+                          <Ionicons name="arrow-up-circle" size={18} color="#fff" />
+                          <Text style={styles.publishText}>上架</Text>
+                        </>
+                      )}
+                    </Pressable>
+                  </View>
+                </View>
               </View>
             ))}
             <View style={{ height: 30 }} />
