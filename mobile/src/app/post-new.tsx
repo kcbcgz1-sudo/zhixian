@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -28,6 +29,9 @@ import BottomNav from '@/components/bottom-nav';
 import { DEFAULT_CITY, DEFAULT_PROVINCE } from '@/constants/regions';
 
 type Asset = ImagePicker.ImagePickerAsset;
+type MediaItem =
+  | { kind: 'existing'; url: string; type: string }
+  | { kind: 'asset'; asset: Asset };
 
 export default function PostNewScreen() {
   const router = useRouter();
@@ -67,10 +71,13 @@ export default function PostNewScreen() {
   }, [cats, user, category]);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [assets, setAssets] = useState<Asset[]>([]);
+  const [items, setItems] = useState<MediaItem[]>([]);
+  const [viewer, setViewer] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
-  const [existingMedia, setExistingMedia] = useState<{ url: string; type: string }[]>([]);
+  const itemUri = (it: MediaItem) => (it.kind === 'existing' ? it.url : it.asset.uri);
+  const itemIsVideo = (it: MediaItem) =>
+    it.kind === 'existing' ? it.type === 'video' : it.asset.type === 'video';
 
   useEffect(() => {
     if (!id) return;
@@ -82,7 +89,11 @@ export default function PostNewScreen() {
         if (p.province) setProvince(p.province);
         if (p.city) setCity(p.city);
         setDistrict(p.district || '');
-        setExistingMedia(Array.isArray(p.media) ? p.media : []);
+        setItems(
+          Array.isArray(p.media)
+            ? p.media.map((m: any) => ({ kind: 'existing' as const, url: m.url, type: m.type }))
+            : [],
+        );
       })
       .catch(() => {});
   }, [id]);
@@ -94,27 +105,30 @@ export default function PostNewScreen() {
       router.push('/login' as any);
       return;
     }
-    const hasImage = existingMedia.some((m) => m.type === 'image') || assets.some((a) => a.type !== 'video');
+    const hasImage = items.some((it) => !itemIsVideo(it));
     if (body.trim().length < 4 && !hasImage) {
       Alert.alert('提示', '先写几句想法，或先加一张照片，AI 再帮你整理（去了哪、路况、停车、感受…）');
       return;
     }
     setAiBusy(true);
     try {
-      // 이미지 URL 수집: 이미 올라간 것 + 새로 고른 이미지 업로드(축소·압축)
-      let imageUrls = existingMedia.filter((m) => m.type === 'image').map((m) => m.url);
-      if (assets.length) {
-        const uploaded: { url: string; type: string }[] = [];
-        for (const a of assets) {
-          const isVideo = a.type === 'video';
-          const uri = isVideo ? a.uri : await shrinkImage(a.uri, a.width, a.height);
-          const r = await uploadMedia({ uri, fileName: a.fileName, mimeType: isVideo ? a.mimeType : 'image/jpeg' });
-          uploaded.push(r);
+      // 새로 고른 이미지는 업로드해 URL 확보(순서 유지), 이미 올라간 것은 그대로
+      const next = [...items];
+      const imageUrls: string[] = [];
+      for (let idx = 0; idx < next.length; idx++) {
+        const it = next[idx];
+        if (it.kind === 'existing') {
+          if (it.type === 'image') imageUrls.push(it.url);
+          continue;
         }
-        setExistingMedia((prev) => [...prev, ...uploaded]);
-        setAssets([]);
-        imageUrls = [...imageUrls, ...uploaded.filter((m) => m.type === 'image').map((m) => m.url)];
+        const a = it.asset;
+        const isVideo = a.type === 'video';
+        const uri = isVideo ? a.uri : await shrinkImage(a.uri, a.width, a.height);
+        const r = await uploadMedia({ uri, fileName: a.fileName, mimeType: isVideo ? a.mimeType : 'image/jpeg' });
+        next[idx] = { kind: 'existing', url: r.url, type: r.type };
+        if (r.type === 'image') imageUrls.push(r.url);
       }
+      setItems(next);
       const catName = cats.find((c) => c.code === category)?.name;
       const d = await aiAssist(body.trim(), catName, city, imageUrls.slice(0, 3));
       setBody(d.body);
@@ -138,11 +152,26 @@ export default function PostNewScreen() {
       quality: 0.8,
       videoMaxDuration: 120,
     });
-    if (!res.canceled) setAssets((prev) => [...prev, ...res.assets].slice(0, 9));
+    if (!res.canceled)
+      setItems((prev) =>
+        [...prev, ...res.assets.map((a) => ({ kind: 'asset' as const, asset: a }))].slice(0, 9),
+      );
   }
 
-  function removeAsset(i: number) {
-    setAssets((prev) => prev.filter((_, idx) => idx !== i));
+  function removeItem(i: number) {
+    setItems((prev) => prev.filter((_, idx) => idx !== i));
+    setViewer(null);
+  }
+
+  function move(i: number, dir: number) {
+    const j = i + dir;
+    setItems((prev) => {
+      if (j < 0 || j >= prev.length) return prev;
+      const n = [...prev];
+      [n[i], n[j]] = [n[j], n[i]];
+      return n;
+    });
+    setViewer((v) => (v === i ? j : v === j ? i : v));
   }
 
   async function submit() {
@@ -161,8 +190,13 @@ export default function PostNewScreen() {
     }
     setSubmitting(true);
     try {
-      const uploaded = [];
-      for (const a of assets) {
+      const media: { url: string; type: string }[] = [];
+      for (const it of items) {
+        if (it.kind === 'existing') {
+          media.push({ url: it.url, type: it.type });
+          continue;
+        }
+        const a = it.asset;
         const isVideo = a.type === 'video';
         const uri = isVideo ? a.uri : await shrinkImage(a.uri, a.width, a.height);
         const r = await uploadMedia({
@@ -170,9 +204,8 @@ export default function PostNewScreen() {
           fileName: a.fileName,
           mimeType: isVideo ? a.mimeType : 'image/jpeg',
         });
-        uploaded.push(r);
+        media.push(r);
       }
-      const media = [...existingMedia, ...uploaded];
       const payload = {
         category,
         title: title.trim(),
@@ -286,47 +319,104 @@ export default function PostNewScreen() {
 
           <Text style={styles.label}>图片 / 视频</Text>
           <View style={styles.mediaWrap}>
-            {existingMedia.map((m, i) => (
-              <View key={`ex-${i}`} style={styles.thumb}>
-                {m.type === 'video' ? (
-                  <View style={[styles.thumbImg, styles.videoThumb]}>
-                    <Ionicons name="play-circle" size={30} color="#fff" />
-                    <Text style={styles.videoLabel}>视频</Text>
+            {items.map((it, i) => (
+              <View key={it.kind === 'existing' ? `ex-${it.url}-${i}` : `as-${i}`} style={styles.thumb}>
+                <Pressable onPress={() => setViewer(i)} style={styles.thumbTap}>
+                  {itemIsVideo(it) ? (
+                    <View style={[styles.thumbImg, styles.videoThumb]}>
+                      <Ionicons name="play-circle" size={30} color="#fff" />
+                      <Text style={styles.videoLabel}>视频</Text>
+                    </View>
+                  ) : (
+                    <Image source={{ uri: itemUri(it) }} style={styles.thumbImg} contentFit="cover" />
+                  )}
+                </Pressable>
+                {i === 0 && (
+                  <View style={styles.coverBadge}>
+                    <Text style={styles.coverText}>封面</Text>
                   </View>
-                ) : (
-                  <Image source={{ uri: m.url }} style={styles.thumbImg} contentFit="cover" />
                 )}
-                <Pressable style={styles.remove} onPress={() => setExistingMedia((prev) => prev.filter((_, idx) => idx !== i))} hitSlop={6}>
+                <Pressable style={styles.remove} onPress={() => removeItem(i)} hitSlop={6}>
                   <Ionicons name="close-circle" size={22} color="#333" />
                 </Pressable>
-              </View>
-            ))}
-            {assets.map((a, i) => (
-              <View key={i} style={styles.thumb}>
-                {a.type === 'video' ? (
-                  <View style={[styles.thumbImg, styles.videoThumb]}>
-                    <Ionicons name="play-circle" size={30} color="#fff" />
-                    <Text style={styles.videoLabel}>视频</Text>
+                {items.length > 1 && (
+                  <View style={styles.moveBar}>
+                    <Pressable style={styles.moveBtn} onPress={() => move(i, -1)} disabled={i === 0} hitSlop={4}>
+                      <Ionicons name="chevron-back" size={16} color={i === 0 ? '#888' : '#fff'} />
+                    </Pressable>
+                    <Pressable style={styles.moveBtn} onPress={() => move(i, 1)} disabled={i === items.length - 1} hitSlop={4}>
+                      <Ionicons name="chevron-forward" size={16} color={i === items.length - 1 ? '#888' : '#fff'} />
+                    </Pressable>
                   </View>
-                ) : (
-                  <Image source={{ uri: a.uri }} style={styles.thumbImg} contentFit="cover" />
                 )}
-                <Pressable style={styles.remove} onPress={() => removeAsset(i)} hitSlop={6}>
-                  <Ionicons name="close-circle" size={22} color="#333" />
-                </Pressable>
               </View>
             ))}
-            {assets.length < 9 && (
+            {items.length < 9 && (
               <Pressable style={styles.addBtn} onPress={pick}>
                 <Ionicons name="camera-outline" size={26} color={Brand.textSub} />
                 <Text style={styles.addText}>添加</Text>
               </Pressable>
             )}
           </View>
-          <Text style={styles.hint}>真实实拍更容易被评为「干货」、赚积分、上首页。内容里的 #标签 会显示在列表上。</Text>
+          <Text style={styles.hint}>点击照片可全屏查看；用 ◀ ▶ 调整顺序（第一张为封面）。真实实拍更容易被评为「干货」、赚积分、上首页。</Text>
         </ScrollView>
       </SafeAreaView>
       <BottomNav />
+
+      {viewer != null && items[viewer] && (
+        <Modal visible transparent animationType="fade" onRequestClose={() => setViewer(null)}>
+          <View style={styles.viewerWrap}>
+            <Pressable style={styles.viewerClose} onPress={() => setViewer(null)} hitSlop={8}>
+              <Ionicons name="close" size={30} color="#fff" />
+            </Pressable>
+            <View style={styles.viewerImgBox}>
+              {itemIsVideo(items[viewer]) ? (
+                <View style={styles.viewerVideo}>
+                  <Ionicons name="play-circle" size={64} color="#fff" />
+                  <Text style={{ color: '#fff', marginTop: 8 }}>视频</Text>
+                </View>
+              ) : (
+                <Image source={{ uri: itemUri(items[viewer]) }} style={styles.viewerImg} contentFit="contain" />
+              )}
+            </View>
+            <View style={styles.viewerNav}>
+              <Pressable onPress={() => setViewer(Math.max(0, (viewer ?? 0) - 1))} disabled={viewer === 0} hitSlop={8}>
+                <Ionicons name="chevron-back-circle" size={40} color={viewer === 0 ? '#555' : '#fff'} />
+              </Pressable>
+              <Text style={styles.viewerIdx}>
+                {viewer + 1} / {items.length}
+                {viewer === 0 ? ' · 封面' : ''}
+              </Text>
+              <Pressable
+                onPress={() => setViewer(Math.min(items.length - 1, (viewer ?? 0) + 1))}
+                disabled={viewer === items.length - 1}
+                hitSlop={8}>
+                <Ionicons name="chevron-forward-circle" size={40} color={viewer === items.length - 1 ? '#555' : '#fff'} />
+              </Pressable>
+            </View>
+            <View style={styles.viewerBtns}>
+              <Pressable
+                style={[styles.viewerAction, viewer === 0 && { opacity: 0.4 }]}
+                onPress={() => move(viewer, -1)}
+                disabled={viewer === 0}>
+                <Ionicons name="arrow-back" size={18} color="#fff" />
+                <Text style={styles.viewerActionText}>前移</Text>
+              </Pressable>
+              <Pressable style={styles.viewerDel} onPress={() => removeItem(viewer)}>
+                <Ionicons name="trash-outline" size={18} color="#fff" />
+                <Text style={styles.viewerActionText}>删除</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.viewerAction, viewer === items.length - 1 && { opacity: 0.4 }]}
+                onPress={() => move(viewer, 1)}
+                disabled={viewer === items.length - 1}>
+                <Text style={styles.viewerActionText}>后移</Text>
+                <Ionicons name="arrow-forward" size={18} color="#fff" />
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       {done && (
         <View style={styles.overlay}>
@@ -411,10 +501,73 @@ const styles = StyleSheet.create({
   },
   mediaWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
   thumb: { width: 100, height: 100 },
+  thumbTap: { width: 100, height: 100 },
   thumbImg: { width: 100, height: 100, borderRadius: R.md, backgroundColor: Brand.bg },
   videoThumb: { backgroundColor: '#3A3D42', alignItems: 'center', justifyContent: 'center' },
   videoLabel: { color: '#fff', fontSize: F.tiny, marginTop: 2 },
   remove: { position: 'absolute', top: -6, right: -6, backgroundColor: '#fff', borderRadius: 999 },
+  coverBadge: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    backgroundColor: Brand.green,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  coverText: { color: '#fff', fontSize: F.tiny, fontWeight: '800' },
+  moveBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderBottomLeftRadius: R.md,
+    borderBottomRightRadius: R.md,
+    paddingHorizontal: 4,
+    paddingVertical: 3,
+  },
+  moveBtn: { paddingHorizontal: 8, paddingVertical: 2 },
+  viewerWrap: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  viewerClose: { position: 'absolute', top: 44, right: 20, zIndex: 2, padding: 6 },
+  viewerImgBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  viewerImg: { width: '100%', height: '100%' },
+  viewerVideo: { alignItems: 'center', justifyContent: 'center' },
+  viewerNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 20,
+    paddingVertical: 14,
+  },
+  viewerIdx: { color: '#fff', fontSize: F.body, fontWeight: '700', minWidth: 110, textAlign: 'center' },
+  viewerBtns: { flexDirection: 'row', justifyContent: 'center', gap: 14, paddingBottom: 10 },
+  viewerAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: R.pill,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  viewerActionText: { color: '#fff', fontSize: F.sub, fontWeight: '800' },
+  viewerDel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: R.pill,
+    backgroundColor: Brand.danger,
+  },
   addBtn: {
     width: 100,
     height: 100,
