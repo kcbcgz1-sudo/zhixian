@@ -186,7 +186,7 @@ export default function AdminAutogenScreen() {
                   <Text style={styles.itemMeta}>{p.createdAt}</Text>
                 </View>
                 <Text style={styles.itemTitle}>{p.title}</Text>
-                <Text style={styles.itemBody} numberOfLines={6}>
+                <Text style={styles.itemBody} selectable>
                   {p.body}
                 </Text>
                 {p.tags.length > 0 && (
