@@ -535,3 +535,50 @@ export async function aiImage(prompt: string): Promise<{ url: string; type: stri
     body: JSON.stringify({ prompt }),
   })) as { url: string; type: string };
 }
+
+
+// ── 자동생성 심사 (관리자) ──
+export type AutogenCatStat = { code: string; name: string; pending: number };
+export type AutogenStatus = {
+  enabled: boolean;
+  hasKey: boolean;
+  dailyPerCategory: number;
+  pendingCap: number;
+  editor: { id: string; nickname: string };
+  lastRun: string | null;
+  pendingTotal: number;
+  perCategory: AutogenCatStat[];
+};
+export type PendingPost = {
+  id: string;
+  category: string;
+  title: string;
+  body: string;
+  tags: string[];
+  author: string;
+  city: string;
+  createdAt: string;
+  autoGen: boolean;
+};
+export async function autogenStatus(): Promise<AutogenStatus> {
+  return (await authFetch('/admin/autogen/status')) as AutogenStatus;
+}
+export async function autogenToggle(enabled: boolean): Promise<{ enabled: boolean }> {
+  return (await authFetch('/admin/autogen/toggle', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled }),
+  })) as { enabled: boolean };
+}
+export async function autogenRun(): Promise<{ created: number; perCategory?: any[] }> {
+  return (await authFetch('/admin/autogen/run', { method: 'POST' })) as any;
+}
+export async function autogenPending(): Promise<PendingPost[]> {
+  return (await authFetch('/admin/autogen/pending')) as PendingPost[];
+}
+export async function autogenPublish(id: string): Promise<{ ok: boolean }> {
+  return (await authFetch(`/admin/autogen/publish/${id}`, { method: 'POST' })) as any;
+}
+export async function autogenDiscard(id: string): Promise<{ ok: boolean }> {
+  return (await authFetch(`/admin/autogen/${id}`, { method: 'DELETE' })) as any;
+}
