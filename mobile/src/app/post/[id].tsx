@@ -20,7 +20,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
-import BottomNav from '@/components/bottom-nav';
 import {
   createComment,
   deleteComment,
@@ -219,13 +218,16 @@ export default function PostDetail() {
           <Pressable onPress={() => router.back()} hitSlop={10}>
             <Ionicons name="arrow-back" size={26} color={Brand.text} />
           </Pressable>
-          {canDeletePost ? (
-            <Pressable onPress={() => post && router.push(`/post-new?id=${post.id}` as any)} hitSlop={10}>
-              <Ionicons name="create-outline" size={24} color={Brand.text} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+            {canDeletePost && (
+              <Pressable onPress={() => post && router.push(`/post-new?id=${post.id}` as any)} hitSlop={10}>
+                <Ionicons name="create-outline" size={24} color={Brand.text} />
+              </Pressable>
+            )}
+            <Pressable onPress={() => router.replace('/' as any)} hitSlop={10}>
+              <Ionicons name="home-outline" size={24} color={Brand.text} />
             </Pressable>
-          ) : (
-            <View style={{ width: 24 }} />
-          )}
+          </View>
         </View>
 
         {loading ? (
@@ -352,7 +354,6 @@ export default function PostDetail() {
           </>
         )}
       </SafeAreaView>
-      <BottomNav />
       <Modal visible={dmOpen} transparent animationType="fade" onRequestClose={() => setDmOpen(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '100%', maxWidth: 360, gap: 12 }}>
