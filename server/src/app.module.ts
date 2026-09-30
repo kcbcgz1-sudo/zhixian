@@ -3,6 +3,7 @@ import { AdminModule } from './admin/admin.module.js';
 import { ActivitiesModule } from './activities/activities.module.js';
 import { CheckinModule } from './checkin/checkin.module.js';
 import { AiModule } from './ai/ai.module.js';
+import { AutogenModule } from './autogen/autogen.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
@@ -28,6 +29,7 @@ import { UploadsModule } from './uploads/uploads.module.js';
     ActivitiesModule,
     CheckinModule,
     AiModule,
+    AutogenModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -200,3 +200,8 @@ model CheckIn {
   @@unique([userId, day])
   @@index([userId])
 }
+
+model AppSetting {
+  key   String @id
+  value String
+}

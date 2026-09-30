@@ -8,5 +8,6 @@ import { AiService } from './ai.service.js';
   imports: [AuthModule],
   controllers: [AiController, AiPublicController],
   providers: [AiService],
+  exports: [AiService],
 })
 export class AiModule {}
