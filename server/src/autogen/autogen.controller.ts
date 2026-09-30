@@ -47,6 +47,12 @@ export class AutogenController {
     return this.svc.publish(id);
   }
 
+  @Post('edit/:id')
+  async edit(@Param('id') id: string, @Body() b: { title?: string; body?: string }, @Req() req: Request) {
+    await this.requireAdmin(req);
+    return this.svc.editContent(id, b?.title, b?.body);
+  }
+
   @Post('publish-all')
   async publishAll(@Req() req: Request) {
     await this.requireAdmin(req);

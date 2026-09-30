@@ -585,3 +585,10 @@ export async function autogenDiscard(id: string): Promise<{ ok: boolean }> {
 export async function autogenPublishAll(): Promise<{ count: number }> {
   return (await authFetch('/admin/autogen/publish-all', { method: 'POST' })) as { count: number };
 }
+export async function autogenEdit(id: string, title: string, body: string): Promise<{ ok: boolean }> {
+  return (await authFetch(`/admin/autogen/edit/${id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, body }),
+  })) as { ok: boolean };
+}

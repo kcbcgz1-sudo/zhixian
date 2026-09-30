@@ -197,6 +197,17 @@ export class AutogenService implements OnModuleInit {
     return { ok: true };
   }
 
+  async editContent(id: string, title?: string, body?: string) {
+    const p = await this.prisma.post.findUnique({ where: { id } });
+    if (!p) return { ok: false };
+    const data: any = {};
+    if (typeof title === 'string' && title.trim()) data.title = title.trim();
+    if (typeof body === 'string' && body.trim()) data.body = body.trim();
+    if (Object.keys(data).length === 0) return { ok: false };
+    await this.prisma.post.update({ where: { id }, data });
+    return { ok: true };
+  }
+
   async publishAll() {
     const r = await this.prisma.post.updateMany({
       where: { status: PostStatus.reviewing },
