@@ -47,6 +47,12 @@ export class AutogenController {
     return this.svc.publish(id);
   }
 
+  @Post('publish-all')
+  async publishAll(@Req() req: Request) {
+    await this.requireAdmin(req);
+    return this.svc.publishAll();
+  }
+
   @Delete(':id')
   async discard(@Param('id') id: string, @Req() req: Request) {
     await this.requireAdmin(req);

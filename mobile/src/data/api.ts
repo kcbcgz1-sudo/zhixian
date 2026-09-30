@@ -582,3 +582,6 @@ export async function autogenPublish(id: string): Promise<{ ok: boolean }> {
 export async function autogenDiscard(id: string): Promise<{ ok: boolean }> {
   return (await authFetch(`/admin/autogen/${id}`, { method: 'DELETE' })) as any;
 }
+export async function autogenPublishAll(): Promise<{ count: number }> {
+  return (await authFetch('/admin/autogen/publish-all', { method: 'POST' })) as { count: number };
+}

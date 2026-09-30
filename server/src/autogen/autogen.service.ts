@@ -197,6 +197,14 @@ export class AutogenService implements OnModuleInit {
     return { ok: true };
   }
 
+  async publishAll() {
+    const r = await this.prisma.post.updateMany({
+      where: { status: PostStatus.reviewing },
+      data: { status: PostStatus.published, publishedAt: new Date() },
+    });
+    return { count: r.count };
+  }
+
   async discard(id: string) {
     await this.prisma.post.deleteMany({ where: { id, status: PostStatus.reviewing } });
     return { ok: true };

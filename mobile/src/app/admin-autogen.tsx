@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,6 +20,7 @@ import {
   autogenDiscard,
   autogenPending,
   autogenPublish,
+  autogenPublishAll,
   autogenRun,
   autogenStatus,
   autogenToggle,
@@ -35,6 +37,23 @@ export default function AdminAutogenScreen() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [bulking, setBulking] = useState(false);
+
+  const onPublishAll = async () => {
+    setBulking(true);
+    try {
+      const r = await autogenPublishAll();
+      setList([]);
+      setConfirmBulk(false);
+      await load();
+      Alert.alert('已上架', `已批量上架 ${r?.count ?? 0} 篇内容`);
+    } catch {
+      Alert.alert('提示', '批量上架失败，请重试');
+    } finally {
+      setBulking(false);
+    }
+  };
 
   const nameOf = (code: string) =>
     status?.perCategory.find((c) => c.code === code)?.name ?? code;
@@ -171,9 +190,17 @@ export default function AdminAutogenScreen() {
               </Pressable>
             </View>
 
-            <Text style={styles.sectionTitle}>
-              待审核 · 待上架（{list.length}）
-            </Text>
+            <View style={styles.sectionRow}>
+              <Text style={styles.sectionTitle}>
+                待审核 · 待上架（{list.length}）
+              </Text>
+              {list.length > 0 && (
+                <Pressable style={styles.bulkBtn} onPress={() => setConfirmBulk(true)} hitSlop={6}>
+                  <Ionicons name="checkmark-done" size={16} color="#fff" />
+                  <Text style={styles.bulkText}>批量上架</Text>
+                </Pressable>
+              )}
+            </View>
 
             {list.length === 0 && (
               <Text style={styles.empty}>暂无待审核内容。点击上方「立即生成一批」试试。</Text>
@@ -220,6 +247,36 @@ export default function AdminAutogenScreen() {
           </ScrollView>
         )}
       </SafeAreaView>
+
+      <Modal visible={confirmBulk} transparent animationType="fade" onRequestClose={() => setConfirmBulk(false)}>
+        <View style={styles.modalWrap}>
+          <View style={styles.modalCard}>
+            <Ionicons name="checkmark-done-circle" size={44} color={Brand.green} />
+            <Text style={styles.modalTitle}>批量上架</Text>
+            <Text style={styles.modalMsg}>
+              将当前 {list.length} 篇待审核内容全部上架并公开展示，确定吗？
+            </Text>
+            <View style={styles.modalBtns}>
+              <Pressable
+                style={styles.modalCancel}
+                onPress={() => setConfirmBulk(false)}
+                disabled={bulking}>
+                <Text style={styles.modalCancelText}>取消</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalOk, bulking && { opacity: 0.6 }]}
+                onPress={onPublishAll}
+                disabled={bulking}>
+                {bulking ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.modalOkText}>全部上架</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -270,7 +327,58 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   runText: { color: '#fff', fontSize: F.body, fontWeight: '800' },
-  sectionTitle: { fontSize: F.body, fontWeight: '800', color: Brand.text, marginTop: 4 },
+  sectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  sectionTitle: { fontSize: F.body, fontWeight: '800', color: Brand.text },
+  bulkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: Brand.green,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  bulkText: { color: '#fff', fontSize: F.small, fontWeight: '800' },
+  modalWrap: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 22,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    gap: 10,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: Brand.text },
+  modalMsg: { fontSize: F.small, color: Brand.textSub, lineHeight: 20, textAlign: 'center' },
+  modalBtns: { flexDirection: 'row', gap: 12, marginTop: 8, alignSelf: 'stretch' },
+  modalCancel: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: R.md,
+    backgroundColor: '#E7EAEC',
+  },
+  modalCancelText: { color: Brand.text, fontWeight: '700', fontSize: F.body },
+  modalOk: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: R.md,
+    backgroundColor: Brand.green,
+  },
+  modalOkText: { color: '#fff', fontWeight: '800', fontSize: F.body },
   empty: { fontSize: F.small, color: Brand.textFaint, paddingVertical: 20, textAlign: 'center' },
   item: { backgroundColor: Brand.card, borderRadius: R.lg, padding: S.lg, gap: 8 },
   itemHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
