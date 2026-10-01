@@ -260,6 +260,41 @@ export default function PostDetail() {
 
               <Text style={styles.title}>{post?.title ?? '内容不存在'}</Text>
               {post?.date ? <Text style={styles.date}>{post.date}</Text> : null}
+
+              {post?.authorId ? (
+                <Pressable
+                  style={styles.authorRow}
+                  onPress={() => router.push(`/user/${post.authorId}` as any)}>
+                  {post.authorAvatar ? (
+                    <Image source={{ uri: post.authorAvatar }} style={styles.authorAvatar} contentFit="cover" />
+                  ) : (
+                    <View style={[styles.authorAvatar, styles.authorAvatarFallback]}>
+                      <Ionicons name="person" size={18} color="#fff" />
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.authorNameRow}>
+                      <Text style={styles.authorName} numberOfLines={1}>{post.author}</Text>
+                      {post.authorVerified ? (
+                        <View style={styles.vBadge}>
+                          <Ionicons name="shield-checkmark" size={10} color="#fff" />
+                          <Text style={styles.vBadgeText}>实名</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.vBadgeOff}>
+                          <Text style={styles.vBadgeOffText}>未实名</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.authorMeta} numberOfLines={1}>
+                      Lv{post.authorLevel ?? 1}
+                      {post.authorTitle ? ` · ${post.authorTitle}` : ''}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={Brand.textFaint} />
+                </Pressable>
+              ) : null}
+
               {post?.body ? <Text style={styles.body}>{post.body}</Text> : null}
 
               {/* 댓글 */}
@@ -417,6 +452,33 @@ const styles = StyleSheet.create({
   aiTagText: { color: '#fff', fontSize: F.tiny },
   title: { fontSize: F.h2, fontWeight: '800', color: Brand.text, marginTop: S.lg, lineHeight: 26 },
   date: { fontSize: F.small, color: Brand.textSub, marginTop: S.sm },
+  authorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: S.sm,
+    marginTop: S.lg,
+    paddingVertical: S.sm,
+    paddingHorizontal: S.md,
+    backgroundColor: Brand.bg,
+    borderRadius: R.md,
+  },
+  authorAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: Brand.card },
+  authorAvatarFallback: { backgroundColor: Brand.green, alignItems: 'center', justifyContent: 'center' },
+  authorNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  authorName: { fontSize: F.body, fontWeight: '800', color: Brand.text, flexShrink: 1 },
+  authorMeta: { fontSize: F.small, color: Brand.textSub, marginTop: 1 },
+  vBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: Brand.green,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  vBadgeText: { color: '#fff', fontSize: F.tiny, fontWeight: '800' },
+  vBadgeOff: { backgroundColor: '#E7EAEC', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 999 },
+  vBadgeOffText: { color: Brand.textSub, fontSize: F.tiny, fontWeight: '700' },
   body: { fontSize: F.body, color: '#3A3D42', lineHeight: 28, marginTop: S.lg },
   actions: {
     flexDirection: 'row',
