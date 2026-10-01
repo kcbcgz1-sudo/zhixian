@@ -20,7 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
 import { injectThinBar } from '@/constants/thinbar';
-import { aiAssist, createPost, fetchCategories, fetchPost, updatePost, uploadMedia, type ApiCategory } from '@/data/api';
+import { aiAssist, aiImage, createPost, fetchCategories, fetchPost, updatePost, uploadMedia, type ApiCategory } from '@/data/api';
 import { shrinkImage } from '@/data/image';
 import { useAuth } from '@/data/auth';
 import { type Category } from '@/data/seed';
@@ -99,6 +99,27 @@ export default function PostNewScreen() {
   }, [id]);
 
   const [aiBusy, setAiBusy] = useState(false);
+  const [imgPrompt, setImgPrompt] = useState('');
+  const [genImg, setGenImg] = useState(false);
+  const isAdmin = user?.role === 'admin';
+
+  async function onGenImage() {
+    const pr = imgPrompt.trim() || title.trim();
+    if (!pr) {
+      Alert.alert('提示', '请先填写配图描述或标题');
+      return;
+    }
+    setGenImg(true);
+    try {
+      const r = await aiImage(pr);
+      setItems((prev) => [...prev, { kind: 'existing' as const, url: r.url, type: r.type || 'image' }].slice(0, 9));
+    } catch (e: any) {
+      Alert.alert('生成失败', String(e?.message ?? '请重试'));
+    } finally {
+      setGenImg(false);
+    }
+  }
+
   async function onAiAssist() {
     if (!user) {
       Alert.alert('请先登录', 'AI 整理需要登录账号');
@@ -359,6 +380,28 @@ export default function PostNewScreen() {
             )}
           </View>
           <Text style={styles.hint}>点击照片可全屏查看；用 ◀ ▶ 调整顺序（第一张为封面）。真实实拍更容易被评为「干货」、赚积分、上首页。</Text>
+
+          {isAdmin && (
+            <View style={styles.aiImgBox}>
+              <Text style={styles.label}>AI 配图（管理员）</Text>
+              <TextInput
+                value={imgPrompt}
+                onChangeText={setImgPrompt}
+                placeholder="配图描述，例：广州白云山清晨登山步道，真实自然风光（留空则用标题）"
+                placeholderTextColor={Brand.textFaint}
+                style={styles.titleInput}
+              />
+              <Pressable style={[styles.aiBtn, genImg && { opacity: 0.6 }]} onPress={onGenImage} disabled={genImg}>
+                {genImg ? (
+                  <ActivityIndicator color={Brand.green} size="small" />
+                ) : (
+                  <Ionicons name="image-outline" size={16} color={Brand.green} />
+                )}
+                <Text style={styles.aiBtnText}>{genImg ? '生成中…约20-40秒' : '生成 AI 配图'}</Text>
+              </Pressable>
+              <Text style={styles.aiHint}>生成的图片会加入上面的图片列表，可调整顺序或删除后保存。</Text>
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
       <BottomNav />
@@ -488,6 +531,7 @@ const styles = StyleSheet.create({
     marginTop: S.sm,
   },
   aiBtnText: { color: Brand.greenDark, fontSize: F.sub, fontWeight: '800' },
+  aiImgBox: { marginTop: S.lg, gap: S.sm },
   aiHint: { fontSize: F.small, color: Brand.textSub, marginTop: 6, lineHeight: 18 },
   bodyInput: {
     borderWidth: 1,
