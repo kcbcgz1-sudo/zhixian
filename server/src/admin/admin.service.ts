@@ -87,13 +87,47 @@ export class AdminService {
     return { ok: true };
   }
 
-  async posts() {
-    const list = await this.prisma.post.findMany({
-      where: { status: { not: PostStatus.reviewing } },
-      orderBy: { createdAt: 'desc' },
-      include: { author: true },
-      take: 200,
-    });
+  async posts(opts?: {
+    q?: string;
+    status?: string;
+    category?: string;
+    flag?: string;
+    skip?: number;
+    take?: number;
+  }) {
+    const q = (opts?.q ?? '').trim();
+    const status = opts?.status ?? 'all';
+    const category = opts?.category ?? 'all';
+    const flag = opts?.flag ?? 'all';
+    const skip = Math.max(0, Number(opts?.skip) || 0);
+    const take = Math.min(50, Math.max(1, Number(opts?.take) || 20));
+
+    const where: any = { status: { not: PostStatus.reviewing } };
+    if (status === 'published') where.status = PostStatus.published;
+    else if (status === 'removed') where.status = PostStatus.removed;
+    if (category && category !== 'all') where.category = category;
+    if (flag === 'pinned') where.pinnedAt = { not: null };
+    else if (flag === 'quality') where.isQuality = true;
+    if (q) {
+      where.OR = [
+        { title: { contains: q, mode: 'insensitive' } },
+        { author: { nickname: { contains: q, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [total, list] = await this.prisma.$transaction([
+      this.prisma.post.count({ where }),
+      this.prisma.post.findMany({
+        where,
+        orderBy: [
+          { pinnedAt: { sort: 'desc', nulls: 'last' } },
+          { createdAt: 'desc' },
+        ],
+        include: { author: true },
+        skip,
+        take,
+      }),
+    ]);
     const ids = list.map((p) => p.id);
     const grp = ids.length
       ? await this.prisma.interaction.groupBy({
@@ -103,7 +137,7 @@ export class AdminService {
         })
       : [];
     const lmap = new Map<string, number>(grp.map((g: any) => [g.postId, g._count._all]));
-    return list.map((p: any) => ({
+    const items = list.map((p: any) => ({
       id: p.id,
       title: p.title,
       category: p.category,
@@ -115,6 +149,7 @@ export class AdminService {
       pinned: p.pinnedAt != null,
       createdAt: p.createdAt,
     }));
+    return { items, total };
   }
 
   // ── 置顶(상단 고정) 지정/해제 ──

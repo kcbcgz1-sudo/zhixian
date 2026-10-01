@@ -294,7 +294,25 @@ export type AdminUser = {
   createdAt: string;
 };
 export const adminStats = (): Promise<AdminStats> => authFetch('/admin/stats');
-export const adminPosts = (): Promise<AdminPost[]> => authFetch('/admin/posts');
+export type AdminPostsResult = { items: AdminPost[]; total: number };
+export const adminPosts = (params?: {
+  q?: string;
+  status?: string;
+  category?: string;
+  flag?: string;
+  skip?: number;
+  take?: number;
+}): Promise<AdminPostsResult> => {
+  const p = new URLSearchParams();
+  if (params?.q) p.set('q', params.q);
+  if (params?.status && params.status !== 'all') p.set('status', params.status);
+  if (params?.category && params.category !== 'all') p.set('category', params.category);
+  if (params?.flag && params.flag !== 'all') p.set('flag', params.flag);
+  if (params?.skip) p.set('skip', String(params.skip));
+  if (params?.take) p.set('take', String(params.take));
+  const qs = p.toString();
+  return authFetch(`/admin/posts${qs ? `?${qs}` : ''}`);
+};
 export const adminPostRemove = (id: string) => authFetch(`/admin/posts/${id}/remove`, { method: 'POST' });
 export const adminPostRestore = (id: string) => authFetch(`/admin/posts/${id}/restore`, { method: 'POST' });
 export const adminPostDelete = (id: string) => authFetch(`/admin/posts/${id}`, { method: 'DELETE' });

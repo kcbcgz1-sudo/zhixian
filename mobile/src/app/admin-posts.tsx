@@ -1,8 +1,18 @@
-// 知闲 · 管理后台 · 内容管理 (下架/删除 + 干货 지정)
+// 知闲 · 管理后台 · 内容管理 (검색 + 필터 + 더보기)
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
@@ -14,41 +24,114 @@ import {
   adminPostRemove,
   adminPostRestore,
   adminPosts,
+  fetchCategories,
   type AdminPost,
 } from '@/data/api';
 import { useAuth } from '@/data/auth';
 
 const CAT_LABEL: Record<string, string> = { fishing: '钓鱼', hiking: '登山', stay: '短租' };
+const PAGE = 20;
+
+type Quick = 'all' | 'published' | 'removed' | 'pinned' | 'quality';
+const QUICKS: { key: Quick; label: string }[] = [
+  { key: 'all', label: '全部' },
+  { key: 'published', label: '已发布' },
+  { key: 'removed', label: '已下架' },
+  { key: 'pinned', label: '置顶' },
+  { key: 'quality', label: '干货' },
+];
 
 export default function AdminPostsScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const [list, setList] = useState<AdminPost[]>([]);
-  const [minLikes, setMinLikes] = useState(100);
+  const [q, setQ] = useState('');
+  const [debQ, setDebQ] = useState('');
+  const [quick, setQuick] = useState<Quick>('all');
+  const [cat, setCat] = useState('all');
+  const [cats, setCats] = useState<{ code: string; name: string }[]>([]);
+  const [items, setItems] = useState<AdminPost[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [more, setMore] = useState(false);
+  const [minLikes, setMinLikes] = useState(100);
+
+  const catName = (code: string) =>
+    cats.find((c) => c.code === code)?.name ?? CAT_LABEL[code] ?? code;
+
+  const buildParams = () => {
+    const status = quick === 'published' ? 'published' : quick === 'removed' ? 'removed' : 'all';
+    const flag = quick === 'pinned' ? 'pinned' : quick === 'quality' ? 'quality' : 'all';
+    return { q: debQ, status, category: cat, flag };
+  };
 
   const load = async () => {
     setLoading(true);
     try {
-      const [posts, cfg] = await Promise.all([adminPosts(), adminPointConfig().catch(() => ({}))]);
-      setList(posts);
-      if (cfg && typeof (cfg as any).quality_min_likes === 'number') {
-        setMinLikes((cfg as any).quality_min_likes);
-      }
+      const res = await adminPosts({ ...buildParams(), skip: 0, take: PAGE });
+      setItems(res.items);
+      setTotal(res.total);
     } catch {
-      setList([]);
+      setItems([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
   };
+
+  const loadMore = async () => {
+    if (more || items.length >= total) return;
+    setMore(true);
+    try {
+      const res = await adminPosts({ ...buildParams(), skip: items.length, take: PAGE });
+      setItems((prev) => [...prev, ...res.items]);
+      setTotal(res.total);
+    } catch {
+      /* noop */
+    } finally {
+      setMore(false);
+    }
+  };
+
+  // 액션(下架/置顶/삭제 등) 후: 현재 보던 개수 유지하며 갱신
+  const reload = async () => {
+    const keep = Math.min(50, Math.max(PAGE, items.length));
+    try {
+      const res = await adminPosts({ ...buildParams(), skip: 0, take: keep });
+      setItems(res.items);
+      setTotal(res.total);
+    } catch {
+      /* noop */
+    }
+  };
+
+  // 분류/설정 1회 로드
+  useEffect(() => {
+    fetchCategories()
+      .then((cs) => setCats(cs.map((c) => ({ code: c.code, name: c.name }))))
+      .catch(() => {});
+    adminPointConfig()
+      .then((cfg: any) => {
+        if (cfg && typeof cfg.quality_min_likes === 'number') setMinLikes(cfg.quality_min_likes);
+      })
+      .catch(() => {});
+  }, []);
+
+  // 검색어 디바운스
+  useEffect(() => {
+    const t = setTimeout(() => setDebQ(q.trim()), 350);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  // 검색/필터 변경 시 처음부터 로드
   useEffect(() => {
     load();
-  }, [user?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debQ, quick, cat, user?.id]);
 
   async function act(fn: () => Promise<any>) {
     try {
       await fn();
-      await load();
+      await reload();
     } catch (e: any) {
       const msg = String(e?.message ?? '请重试');
       if (Platform.OS === 'web' && typeof window !== 'undefined') window.alert(msg);
@@ -79,13 +162,76 @@ export default function AdminPostsScreen() {
           <View style={{ width: 26 }} />
         </View>
 
+        {/* 검색창 */}
+        <View style={styles.searchWrap}>
+          <View style={styles.searchBox}>
+            <Ionicons name="search" size={18} color={Brand.textSub} />
+            <TextInput
+              style={styles.searchInput}
+              value={q}
+              onChangeText={setQ}
+              placeholder="搜索标题或作者昵称"
+              placeholderTextColor={Brand.textFaint}
+              returnKeyType="search"
+            />
+            {q.length > 0 && (
+              <Pressable onPress={() => setQ('')} hitSlop={8}>
+                <Ionicons name="close-circle" size={18} color={Brand.textFaint} />
+              </Pressable>
+            )}
+          </View>
+        </View>
+
+        {/* 빠른 필터 */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+        >
+          {QUICKS.map((qk) => (
+            <Pressable
+              key={qk.key}
+              onPress={() => setQuick(qk.key)}
+              style={[styles.chip, quick === qk.key && styles.chipOn]}
+            >
+              <Text style={[styles.chipText, quick === qk.key && styles.chipTextOn]}>{qk.label}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        {/* 분류 필터 */}
+        {cats.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipRow}
+          >
+            <Pressable
+              onPress={() => setCat('all')}
+              style={[styles.chip, cat === 'all' && styles.chipOn]}
+            >
+              <Text style={[styles.chipText, cat === 'all' && styles.chipTextOn]}>全部分类</Text>
+            </Pressable>
+            {cats.map((c) => (
+              <Pressable
+                key={c.code}
+                onPress={() => setCat(c.code)}
+                style={[styles.chip, cat === c.code && styles.chipOn]}
+              >
+                <Text style={[styles.chipText, cat === c.code && styles.chipTextOn]}>{c.name}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
+
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={Brand.green} size="large" />
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.content}>
-            {list.map((p) => {
+            <Text style={styles.countText}>共 {total} 条</Text>
+            {items.map((p) => {
               const removed = p.status === 'removed';
               const canGanhuo = p.likes >= minLikes;
               return (
@@ -109,7 +255,7 @@ export default function AdminPostsScreen() {
                     </View>
                   </View>
                   <Text style={styles.meta}>
-                    {CAT_LABEL[p.category] ?? p.category} · {p.author} · ♥ {p.likes}
+                    {catName(p.category)} · {p.author} · ♥ {p.likes}
                   </Text>
                   <View style={styles.actions}>
                     {p.pinned ? (
@@ -150,7 +296,16 @@ export default function AdminPostsScreen() {
                 </View>
               );
             })}
-            {list.length === 0 && <Text style={styles.empty}>暂无内容</Text>}
+            {items.length === 0 && <Text style={styles.empty}>暂无内容</Text>}
+            {items.length < total && (
+              <Pressable style={styles.moreBtn} onPress={loadMore} disabled={more}>
+                {more ? (
+                  <ActivityIndicator color={Brand.green} />
+                ) : (
+                  <Text style={styles.moreBtnText}>加载更多（{items.length}/{total}）</Text>
+                )}
+              </Pressable>
+            )}
           </ScrollView>
         )}
       </SafeAreaView>
@@ -172,8 +327,32 @@ const styles = StyleSheet.create({
     borderBottomColor: Brand.border,
   },
   headerTitle: { fontSize: F.h2, fontWeight: '800', color: Brand.text },
+  searchWrap: { paddingHorizontal: S.lg, paddingTop: S.md, backgroundColor: Brand.card },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: S.sm,
+    backgroundColor: Brand.bg,
+    borderRadius: R.md,
+    paddingHorizontal: S.md,
+    height: 40,
+  },
+  searchInput: { flex: 1, fontSize: F.body, color: Brand.text, paddingVertical: 0 },
+  chipRow: { paddingHorizontal: S.lg, paddingVertical: S.sm, gap: S.sm, backgroundColor: Brand.card },
+  chip: {
+    paddingHorizontal: S.md,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: Brand.bg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Brand.border,
+  },
+  chipOn: { backgroundColor: Brand.green, borderColor: Brand.green },
+  chipText: { fontSize: F.small, color: Brand.textSub, fontWeight: '700' },
+  chipTextOn: { color: '#fff' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: S.lg, gap: S.md },
+  countText: { fontSize: F.small, color: Brand.textSub, marginBottom: 2 },
   card: { backgroundColor: Brand.card, borderRadius: R.lg, padding: S.lg, gap: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
   title: { flex: 1, fontSize: F.body, fontWeight: '700', color: Brand.text },
@@ -202,5 +381,14 @@ const styles = StyleSheet.create({
   btnPinText: { color: '#fff', fontWeight: '800', fontSize: F.small },
   btnPinOn: { backgroundColor: '#FBE0DE' },
   btnPinOnText: { color: Brand.danger, fontWeight: '800', fontSize: F.small },
+  moreBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: S.md,
+    borderRadius: R.md,
+    backgroundColor: Brand.card,
+    marginTop: 4,
+  },
+  moreBtnText: { color: Brand.green, fontWeight: '800', fontSize: F.body },
   empty: { textAlign: 'center', color: Brand.textSub, marginTop: S.xxl },
 });

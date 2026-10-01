@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
 } from '@nestjs/common';
 import { PostStatus } from '@prisma/client';
@@ -96,9 +97,16 @@ export class AdminController {
   }
 
   @Get('posts')
-  async posts(@Req() req: Request) {
+  async posts(@Req() req: Request, @Query() query: any) {
     await this.requireAdmin(req);
-    return this.admin.posts();
+    return this.admin.posts({
+      q: typeof query?.q === 'string' ? query.q : '',
+      status: typeof query?.status === 'string' ? query.status : 'all',
+      category: typeof query?.category === 'string' ? query.category : 'all',
+      flag: typeof query?.flag === 'string' ? query.flag : 'all',
+      skip: query?.skip ? parseInt(query.skip, 10) : 0,
+      take: query?.take ? parseInt(query.take, 10) : 20,
+    });
   }
 
   @Post('posts/:id/remove')
