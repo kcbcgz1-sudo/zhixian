@@ -12,6 +12,9 @@ export type Post = {
   excerpt?: string; // 제목 밑 간략설명(본문 요약, #태그 제외)
   author: string;
   authorTitle: string;
+  authorAvatar?: string | null;
+  authorLevel?: number;
+  authorVerified?: boolean;
   comments: number;
   likes: string;
   favorites?: number;

@@ -176,6 +176,38 @@ export class PostsService {
     return this.shapeList(posts, userId);
   }
 
+  // 공개 사용자 프로필(아무나 조회)
+  async userProfile(id: string) {
+    const u = await this.prisma.user.findUnique({ where: { id } });
+    if (!u) throw new NotFoundException('user not found');
+    const postCount = await this.prisma.post.count({
+      where: { authorId: id, status: PostStatus.published },
+    });
+    const title = await this.levels.titleFor(u.level ?? 1);
+    return {
+      id: u.id,
+      nickname: u.nickname,
+      avatar: u.avatar ?? null,
+      coverImage: u.coverImage ?? null,
+      level: u.level ?? 1,
+      title,
+      city: u.city ?? null,
+      province: u.province ?? null,
+      postCount,
+      verified: (u as any).verified === true, // 실명인증 (나중에)
+    };
+  }
+
+  // 특정 작성자의 공개(발행) 글 목록
+  async byAuthor(authorId: string, viewerId?: string | null) {
+    const posts = await this.prisma.post.findMany({
+      where: { authorId, status: PostStatus.published },
+      orderBy: { createdAt: 'desc' },
+      include: { author: true },
+    });
+    return this.shapeList(posts, viewerId);
+  }
+
   async updatePost(postId: string, dto: CreatePostDto, userId?: string | null) {
     if (!userId) throw new ForbiddenException('请先登录');
     const post = await this.prisma.post.findUnique({ where: { id: postId }, include: { author: true } });
@@ -465,6 +497,9 @@ export class PostsService {
       excerpt: makeExcerpt(p.body),
       author: p.author?.nickname ?? '',
       authorTitle: a.authorTitle ?? '',
+      authorAvatar: p.author?.avatar ?? null,
+      authorLevel: p.author?.level ?? 1,
+      authorVerified: (p.author as any)?.verified === true,
       comments: x.comments ?? 0,
       likes: String(x.likes ?? 0),
       favorites: x.favorites ?? 0,

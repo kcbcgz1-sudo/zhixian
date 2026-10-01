@@ -201,7 +201,7 @@ export default function HomeScreen() {
   );
 }
 
-function PostCard({
+export function PostCard({
   post,
   onPress,
   canDelete,
@@ -212,6 +212,7 @@ function PostCard({
   canDelete?: boolean;
   onDelete?: () => void;
 }) {
+  const router = useRouter();
   return (
     <Pressable style={styles.card} onPress={onPress}>
       {canDelete && (
@@ -241,11 +242,27 @@ function PostCard({
             {post.tags.join('  ')}
           </Text>
         ) : null}
-        <Text style={styles.author} numberOfLines={1}>
-          {post.district ? `${post.district} · ` : ''}
-          {post.author}
-          {post.authorTitle ? <Text style={styles.authorTitle}>{`  「${post.authorTitle}」`}</Text> : null}
-        </Text>
+        <Pressable
+          style={styles.authorRow}
+          hitSlop={4}
+          onPress={(e) => {
+            e.stopPropagation();
+            if (post.authorId) router.push(`/user/${post.authorId}` as any);
+          }}>
+          {post.authorAvatar ? (
+            <Image source={{ uri: post.authorAvatar }} style={styles.authorAvatar} contentFit="cover" />
+          ) : (
+            <View style={[styles.authorAvatar, styles.authorAvatarFallback]}>
+              <Ionicons name="person" size={11} color="#fff" />
+            </View>
+          )}
+          <Text style={styles.author} numberOfLines={1}>
+            {post.district ? `${post.district} · ` : ''}
+            {post.author}
+            {post.authorVerified ? <Text style={styles.verified}>{'  ✓实名'}</Text> : null}
+            {post.authorTitle ? <Text style={styles.authorTitle}>{`  「${post.authorTitle}」`}</Text> : null}
+          </Text>
+        </Pressable>
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
             <Ionicons name="chatbubble-outline" size={16} color={Brand.textSub} />
@@ -336,8 +353,12 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: F.body, fontWeight: '800', color: Brand.text, lineHeight: 22 },
   excerpt: { fontSize: F.small, color: Brand.textSub, lineHeight: 18 },
   tags: { fontSize: F.tiny, color: Brand.green, fontWeight: '600' },
-  author: { fontSize: F.tiny, color: Brand.textSub, marginTop: 2 },
+  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
+  authorAvatar: { width: 18, height: 18, borderRadius: 9, backgroundColor: Brand.bg },
+  authorAvatarFallback: { backgroundColor: Brand.green, alignItems: 'center', justifyContent: 'center' },
+  author: { flex: 1, fontSize: F.tiny, color: Brand.textSub },
   authorTitle: { color: Brand.textFaint },
+  verified: { color: Brand.green, fontWeight: '800' },
   metaRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: S.lg, marginTop: 2 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { fontSize: F.tiny, color: Brand.textSub, fontWeight: '600' },

@@ -39,6 +39,17 @@ export class PostsController {
     return this.posts.myLikes(uid);
   }
 
+  @Get('user/:id')
+  userProfile(@Param('id') id: string) {
+    return this.posts.userProfile(id);
+  }
+
+  @Get('user/:id/posts')
+  userPosts(@Param('id') id: string, @Req() req: Request) {
+    const uid = this.auth.verifyToken(req.headers['authorization']);
+    return this.posts.byAuthor(id, uid);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @Req() req: Request) {
     const uid = this.auth.verifyToken(req.headers['authorization']);

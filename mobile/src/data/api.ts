@@ -592,3 +592,24 @@ export async function autogenEdit(id: string, title: string, body: string): Prom
     body: JSON.stringify({ title, body }),
   })) as { ok: boolean };
 }
+
+
+// ── 공개 사용자 프로필 ──
+export type UserProfile = {
+  id: string;
+  nickname: string;
+  avatar: string | null;
+  coverImage: string | null;
+  level: number;
+  title: string;
+  city: string | null;
+  province: string | null;
+  postCount: number;
+  verified: boolean;
+};
+export async function fetchUser(id: string): Promise<UserProfile> {
+  return (await authFetch(`/posts/user/${id}`)) as UserProfile;
+}
+export async function fetchUserPosts(id: string): Promise<Post[]> {
+  return (await authFetch(`/posts/user/${id}/posts`)) as Post[];
+}
