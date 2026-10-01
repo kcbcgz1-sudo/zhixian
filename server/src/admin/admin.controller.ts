@@ -119,6 +119,12 @@ export class AdminController {
     return this.admin.setQuality(id, !!body?.on);
   }
 
+  @Post('posts/:id/pin')
+  async setPin(@Param('id') id: string, @Body() body: any, @Req() req: Request) {
+    await this.requireAdmin(req);
+    return this.admin.setPin(id, !!body?.on);
+  }
+
   @Delete('posts/:id')
   async del(@Param('id') id: string, @Req() req: Request) {
     await this.requireAdmin(req);

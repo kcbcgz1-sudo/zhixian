@@ -108,6 +108,7 @@ model Post {
   interactions Interaction[]
   createdAt    DateTime      @default(now())
   publishedAt  DateTime?
+  pinnedAt     DateTime?
 
   @@index([category, status])
 }

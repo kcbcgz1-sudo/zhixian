@@ -9,6 +9,7 @@ import { Brand, F, R, S } from '@/constants/brand';
 import {
   adminPointConfig,
   adminPostDelete,
+  adminPostPin,
   adminPostQuality,
   adminPostRemove,
   adminPostRestore,
@@ -93,6 +94,11 @@ export default function AdminPostsScreen() {
                     <Text style={styles.title} numberOfLines={1}>
                       {p.title}
                     </Text>
+                    {p.pinned && (
+                      <View style={styles.pinBadge}>
+                        <Text style={styles.pinBadgeText}>置顶</Text>
+                      </View>
+                    )}
                     {p.isQuality && (
                       <View style={styles.ganhuoBadge}>
                         <Text style={styles.ganhuoBadgeText}>干货</Text>
@@ -106,6 +112,15 @@ export default function AdminPostsScreen() {
                     {CAT_LABEL[p.category] ?? p.category} · {p.author} · ♥ {p.likes}
                   </Text>
                   <View style={styles.actions}>
+                    {p.pinned ? (
+                      <Pressable style={[styles.btn, styles.btnPinOn]} onPress={() => act(() => adminPostPin(p.id, false))}>
+                        <Text style={styles.btnPinOnText}>取消置顶</Text>
+                      </Pressable>
+                    ) : (
+                      <Pressable style={[styles.btn, styles.btnPin]} onPress={() => act(() => adminPostPin(p.id, true))}>
+                        <Text style={styles.btnPinText}>置顶</Text>
+                      </Pressable>
+                    )}
                     {removed ? (
                       <Pressable style={[styles.btn, styles.btnGreen]} onPress={() => act(() => adminPostRestore(p.id))}>
                         <Text style={styles.btnGreenText}>恢复</Text>
@@ -168,6 +183,8 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: F.tiny, color: Brand.text },
   ganhuoBadge: { paddingHorizontal: S.sm, paddingVertical: 2, borderRadius: R.sm, backgroundColor: '#FBE5C0' },
   ganhuoBadgeText: { fontSize: F.tiny, color: '#8A5A00', fontWeight: '800' },
+  pinBadge: { paddingHorizontal: S.sm, paddingVertical: 2, borderRadius: R.sm, backgroundColor: '#FBE0DE' },
+  pinBadgeText: { fontSize: F.tiny, color: Brand.danger, fontWeight: '800' },
   meta: { fontSize: F.small, color: Brand.textSub },
   actions: { flexDirection: 'row', gap: S.sm, marginTop: 4, flexWrap: 'wrap' },
   btn: { paddingHorizontal: S.lg, paddingVertical: S.sm, borderRadius: R.md },
@@ -181,5 +198,9 @@ const styles = StyleSheet.create({
   btnDisabledText: { color: Brand.textFaint, fontWeight: '700', fontSize: F.small },
   btnRed: { backgroundColor: '#FBE9E7' },
   btnRedText: { color: Brand.danger, fontWeight: '700', fontSize: F.small },
+  btnPin: { backgroundColor: Brand.danger },
+  btnPinText: { color: '#fff', fontWeight: '800', fontSize: F.small },
+  btnPinOn: { backgroundColor: '#FBE0DE' },
+  btnPinOnText: { color: Brand.danger, fontWeight: '800', fontSize: F.small },
   empty: { textAlign: 'center', color: Brand.textSub, marginTop: S.xxl },
 });

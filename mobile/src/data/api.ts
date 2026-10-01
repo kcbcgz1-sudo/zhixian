@@ -278,6 +278,7 @@ export type AdminPost = {
   cover: string | null;
   likes: number;
   isQuality: boolean;
+  pinned: boolean;
   createdAt: string;
 };
 export type AdminUser = {
@@ -297,6 +298,12 @@ export const adminPosts = (): Promise<AdminPost[]> => authFetch('/admin/posts');
 export const adminPostRemove = (id: string) => authFetch(`/admin/posts/${id}/remove`, { method: 'POST' });
 export const adminPostRestore = (id: string) => authFetch(`/admin/posts/${id}/restore`, { method: 'POST' });
 export const adminPostDelete = (id: string) => authFetch(`/admin/posts/${id}`, { method: 'DELETE' });
+export const adminPostPin = (id: string, on: boolean) =>
+  authFetch(`/admin/posts/${id}/pin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ on }),
+  });
 export const adminUsers = (): Promise<AdminUser[]> => authFetch('/admin/users');
 export const adminUserBan = (id: string) => authFetch(`/admin/users/${id}/ban`, { method: 'POST' });
 export const adminUserUnban = (id: string) => authFetch(`/admin/users/${id}/unban`, { method: 'POST' });

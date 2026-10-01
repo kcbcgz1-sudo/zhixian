@@ -111,8 +111,20 @@ export class AdminService {
       cover: (p.attributes as any)?.cover ?? null,
       likes: lmap.get(p.id) ?? 0,
       isQuality: !!p.isQuality,
+      pinned: p.pinnedAt != null,
       createdAt: p.createdAt,
     }));
+  }
+
+  // ── 置顶(상단 고정) 지정/해제 ──
+  async setPin(postId: string, on: boolean) {
+    const post = await this.prisma.post.findUnique({ where: { id: postId } });
+    if (!post) throw new BadRequestException('内容不存在');
+    await this.prisma.post.update({
+      where: { id: postId },
+      data: { pinnedAt: on ? new Date() : null },
+    });
+    return { ok: true, pinned: !!on };
   }
 
   // ── 干货 지정/해제 (좋아요 최소치 게이팅 + 포인트 적립/회수) ──

@@ -15,6 +15,7 @@ export type Post = {
   authorAvatar?: string | null;
   authorLevel?: number;
   authorVerified?: boolean;
+  pinned?: boolean;
   comments: number;
   likes: string;
   favorites?: number;

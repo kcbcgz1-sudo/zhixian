@@ -21,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Brand, F, R, S } from '@/constants/brand';
 import {
+  adminPostPin,
   createComment,
   deleteComment,
   deletePost,
@@ -166,6 +167,17 @@ export default function PostDetail() {
   const isAdmin = user?.role === 'admin';
   const canDeletePost = !!post && (post.mine || isAdmin);
 
+  async function onPin() {
+    if (!post) return;
+    const next = !post.pinned;
+    try {
+      await adminPostPin(post.id, next);
+      setPost((prev) => (prev ? { ...prev, pinned: next } : prev));
+    } catch (e: any) {
+      Alert.alert('提示', String(e?.message ?? '操作失败'));
+    }
+  }
+
   function onDeletePost() {
     const run = async () => {
       try {
@@ -219,6 +231,15 @@ export default function PostDetail() {
             <Ionicons name="arrow-back" size={26} color={Brand.text} />
           </Pressable>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+            {isAdmin && !!post && (
+              <Pressable onPress={onPin} hitSlop={10}>
+                <Ionicons
+                  name={post.pinned ? 'pin' : 'pin-outline'}
+                  size={23}
+                  color={post.pinned ? Brand.danger : Brand.text}
+                />
+              </Pressable>
+            )}
             {canDeletePost && (
               <Pressable onPress={() => post && router.push(`/post-new?id=${post.id}` as any)} hitSlop={10}>
                 <Ionicons name="create-outline" size={24} color={Brand.text} />

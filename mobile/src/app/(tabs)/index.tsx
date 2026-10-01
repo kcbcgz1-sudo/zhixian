@@ -230,6 +230,7 @@ export function PostCard({
 
       <View style={styles.cardBody}>
         <Text style={styles.cardTitle} numberOfLines={2}>
+          {post.pinned ? <Text style={styles.pinTag}>置顶 </Text> : null}
           {post.title}
         </Text>
         {post.excerpt ? (
@@ -351,6 +352,7 @@ const styles = StyleSheet.create({
   thumb: { width: 104, height: 104, borderRadius: R.md, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.bg },
   cardBody: { flex: 1, gap: 3 },
   cardTitle: { fontSize: F.body, fontWeight: '800', color: Brand.text, lineHeight: 22 },
+  pinTag: { color: Brand.danger, fontWeight: '900' },
   excerpt: { fontSize: F.small, color: Brand.textSub, lineHeight: 18 },
   tags: { fontSize: F.tiny, color: Brand.green, fontWeight: '600' },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },

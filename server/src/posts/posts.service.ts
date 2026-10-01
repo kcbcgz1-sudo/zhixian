@@ -104,7 +104,11 @@ export class PostsService {
     const skip = Math.max(Number(offset) || 0, 0);
     const posts = await this.prisma.post.findMany({
       where,
-      orderBy: [{ trustScore: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [
+        { pinnedAt: { sort: 'desc', nulls: 'last' } },
+        { trustScore: 'desc' },
+        { createdAt: 'desc' },
+      ],
       include: { author: true },
       take,
       skip,
@@ -500,6 +504,7 @@ export class PostsService {
       authorAvatar: p.author?.avatar ?? null,
       authorLevel: p.author?.level ?? 1,
       authorVerified: (p.author as any)?.verified === true,
+      pinned: p.pinnedAt != null,
       comments: x.comments ?? 0,
       likes: String(x.likes ?? 0),
       favorites: x.favorites ?? 0,
