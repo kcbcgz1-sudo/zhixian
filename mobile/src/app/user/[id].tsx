@@ -76,7 +76,7 @@ export default function UserProfileScreen() {
                 ) : (
                   <LinearGradient colors={['#CDEBD6', '#A9DCBB']} style={styles.cover} />
                 )}
-                <View style={styles.headRow}>
+                <View style={styles.avatarWrap}>
                   {profile.avatar ? (
                     <Image source={{ uri: profile.avatar }} style={styles.avatar} contentFit="cover" />
                   ) : (
@@ -84,27 +84,27 @@ export default function UserProfileScreen() {
                       <Ionicons name="person" size={34} color="#fff" />
                     </View>
                   )}
-                  <View style={styles.headInfo}>
-                    <View style={styles.nameRow}>
-                      <Text style={styles.nick} numberOfLines={1}>
-                        {profile.nickname}
-                      </Text>
-                      {profile.verified ? (
-                        <View style={styles.badge}>
-                          <Ionicons name="shield-checkmark" size={12} color="#fff" />
-                          <Text style={styles.badgeText}>实名</Text>
-                        </View>
-                      ) : (
-                        <View style={styles.badgeOff}>
-                          <Text style={styles.badgeOffText}>未实名</Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text style={styles.sub} numberOfLines={1}>
-                      Lv{profile.level} · {profile.title}
-                      {profile.city ? ` · ${profile.city}` : ''}
+                </View>
+                <View style={styles.info}>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.nick} numberOfLines={1}>
+                      {profile.nickname}
                     </Text>
+                    {profile.verified ? (
+                      <View style={styles.badge}>
+                        <Ionicons name="shield-checkmark" size={12} color="#fff" />
+                        <Text style={styles.badgeText}>实名</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.badgeOff}>
+                        <Text style={styles.badgeOffText}>未实名</Text>
+                      </View>
+                    )}
                   </View>
+                  <Text style={styles.sub} numberOfLines={1}>
+                    Lv{profile.level} · {profile.title}
+                    {profile.city ? ` · ${profile.city}` : ''}
+                  </Text>
                 </View>
                 <View style={styles.statsRow}>
                   <Text style={styles.statNum}>{profile.postCount}</Text>
@@ -139,25 +139,19 @@ const styles = StyleSheet.create({
   barTitle: { flex: 1, textAlign: 'center', fontSize: F.h2, fontWeight: '800', color: Brand.text },
   listContent: { paddingBottom: S.xxl },
   cover: { width: '100%', height: 130 },
-  headRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: S.md,
-    paddingHorizontal: S.lg,
-    marginTop: -34,
-  },
+  avatarWrap: { paddingHorizontal: S.lg, marginTop: -38 },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     borderWidth: 3,
-    borderColor: Brand.card,
+    borderColor: Brand.bg,
     backgroundColor: Brand.bg,
   },
   avatarFallback: { backgroundColor: Brand.green, alignItems: 'center', justifyContent: 'center' },
-  headInfo: { flex: 1, paddingBottom: 6, gap: 4 },
+  info: { paddingHorizontal: S.lg, marginTop: S.sm, gap: 5 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  nick: { fontSize: F.h3 ?? 18, fontWeight: '800', color: Brand.text, flexShrink: 1 },
+  nick: { fontSize: 22, fontWeight: '900', color: Brand.text, flexShrink: 1 },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
