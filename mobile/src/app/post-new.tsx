@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Modal,
   Platform,
   Pressable,
@@ -17,6 +18,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { DraggableGrid } from 'react-native-draggable-grid';
 
 import { Brand, F, R, S } from '@/constants/brand';
 import { injectThinBar } from '@/constants/thinbar';
@@ -30,8 +32,15 @@ import { DEFAULT_CITY, DEFAULT_PROVINCE } from '@/constants/regions';
 
 type Asset = ImagePicker.ImagePickerAsset;
 type MediaItem =
-  | { kind: 'existing'; url: string; type: string }
-  | { kind: 'asset'; asset: Asset };
+  | { kind: 'existing'; url: string; type: string; uid: string }
+  | { kind: 'asset'; asset: Asset; uid: string };
+
+let _uidSeq = 0;
+const newUid = () => `mi_${Date.now().toString(36)}_${_uidSeq++}`;
+
+// 그리드 한 칸 크기(화면폭 - 좌우 패딩 16*2 → 3등분)
+const COLW = Math.floor((Dimensions.get('window').width - 32) / 3);
+const TILE = COLW - 8;
 
 export default function PostNewScreen() {
   const router = useRouter();
@@ -91,7 +100,7 @@ export default function PostNewScreen() {
         setDistrict(p.district || '');
         setItems(
           Array.isArray(p.media)
-            ? p.media.map((m: any) => ({ kind: 'existing' as const, url: m.url, type: m.type }))
+            ? p.media.map((m: any) => ({ kind: 'existing' as const, url: m.url, type: m.type, uid: newUid() }))
             : [],
         );
       })
@@ -112,7 +121,7 @@ export default function PostNewScreen() {
     setGenImg(true);
     try {
       const r = await aiImage(pr);
-      setItems((prev) => [...prev, { kind: 'existing' as const, url: r.url, type: r.type || 'image' }].slice(0, 9));
+      setItems((prev) => [...prev, { kind: 'existing' as const, url: r.url, type: r.type || 'image', uid: newUid() }].slice(0, 9));
     } catch (e: any) {
       Alert.alert('生成失败', String(e?.message ?? '请重试'));
     } finally {
@@ -146,7 +155,7 @@ export default function PostNewScreen() {
         const isVideo = a.type === 'video';
         const uri = isVideo ? a.uri : await shrinkImage(a.uri, a.width, a.height);
         const r = await uploadMedia({ uri, fileName: a.fileName, mimeType: isVideo ? a.mimeType : 'image/jpeg' });
-        next[idx] = { kind: 'existing', url: r.url, type: r.type };
+        next[idx] = { kind: 'existing', url: r.url, type: r.type, uid: it.uid };
         if (r.type === 'image') imageUrls.push(r.url);
       }
       setItems(next);
@@ -175,13 +184,29 @@ export default function PostNewScreen() {
     });
     if (!res.canceled)
       setItems((prev) =>
-        [...prev, ...res.assets.map((a) => ({ kind: 'asset' as const, asset: a }))].slice(0, 9),
+        [...prev, ...res.assets.map((a) => ({ kind: 'asset' as const, asset: a, uid: newUid() }))].slice(0, 9),
       );
   }
 
   function removeItem(i: number) {
     setItems((prev) => prev.filter((_, idx) => idx !== i));
     setViewer(null);
+  }
+
+  function removeUid(uid: string) {
+    setItems((prev) => prev.filter((x) => x.uid !== uid));
+    setViewer(null);
+  }
+
+  function onDragRelease(newData: Array<{ key: string }>) {
+    setItems((prev) => {
+      const byUid = new Map(prev.map((x) => [x.uid, x]));
+      const next = newData
+        .filter((d) => d.key !== '__add__')
+        .map((d) => byUid.get(d.key))
+        .filter(Boolean) as MediaItem[];
+      return next.length === prev.length ? next : prev;
+    });
   }
 
   function move(i: number, dir: number) {
@@ -248,6 +273,56 @@ export default function PostNewScreen() {
       Alert.alert(editing ? '保存失败' : '发布失败', String(e?.message ?? '请检查网络后重试'));
     }
   }
+
+  const gridData: any[] = [
+    ...items.map((it) => ({ ...it, key: it.uid })),
+    ...(items.length < 9 ? [{ key: '__add__', disabledDrag: true, disabledReSorted: true }] : []),
+  ];
+
+  const renderTile = (item: any, order: number) => {
+    if (item.key === '__add__') {
+      return (
+        <View style={styles.cellWrap} key="__add__">
+          <View style={styles.addBtnGrid}>
+            <Ionicons name="camera-outline" size={26} color={Brand.textSub} />
+            <Text style={styles.addText}>添加</Text>
+          </View>
+        </View>
+      );
+    }
+    const it = item as MediaItem;
+    return (
+      <View style={styles.cellWrap} key={item.key}>
+        <View style={styles.tileInner}>
+          {itemIsVideo(it) ? (
+            <View style={[styles.tileImg, styles.videoThumb]}>
+              <Ionicons name="play-circle" size={30} color="#fff" />
+              <Text style={styles.videoLabel}>视频</Text>
+            </View>
+          ) : (
+            <Image source={{ uri: itemUri(it) }} style={styles.tileImg} contentFit="cover" />
+          )}
+          {order === 0 && (
+            <View style={styles.coverBadge}>
+              <Text style={styles.coverText}>封面</Text>
+            </View>
+          )}
+          <Pressable style={styles.remove} onPress={() => removeUid(it.uid)} hitSlop={8}>
+            <Ionicons name="close-circle" size={22} color="#333" />
+          </Pressable>
+        </View>
+      </View>
+    );
+  };
+
+  const onTilePress = (item: any) => {
+    if (item.key === '__add__') {
+      pick();
+      return;
+    }
+    const idx = items.findIndex((x) => x.uid === item.key);
+    if (idx >= 0) setViewer(idx);
+  };
 
   return (
     <View style={styles.container}>
@@ -339,47 +414,17 @@ export default function PostNewScreen() {
           <Text style={styles.aiHint}>写几句想法、或先加照片，AI 会结合照片帮你整理成干货帖（保留你说的，不乱编）。</Text>
 
           <Text style={styles.label}>图片 / 视频</Text>
-          <View style={styles.mediaWrap}>
-            {items.map((it, i) => (
-              <View key={it.kind === 'existing' ? `ex-${it.url}-${i}` : `as-${i}`} style={styles.thumb}>
-                <Pressable onPress={() => setViewer(i)} style={styles.thumbTap}>
-                  {itemIsVideo(it) ? (
-                    <View style={[styles.thumbImg, styles.videoThumb]}>
-                      <Ionicons name="play-circle" size={30} color="#fff" />
-                      <Text style={styles.videoLabel}>视频</Text>
-                    </View>
-                  ) : (
-                    <Image source={{ uri: itemUri(it) }} style={styles.thumbImg} contentFit="cover" />
-                  )}
-                </Pressable>
-                {i === 0 && (
-                  <View style={styles.coverBadge}>
-                    <Text style={styles.coverText}>封面</Text>
-                  </View>
-                )}
-                <Pressable style={styles.remove} onPress={() => removeItem(i)} hitSlop={6}>
-                  <Ionicons name="close-circle" size={22} color="#333" />
-                </Pressable>
-                {items.length > 1 && (
-                  <View style={styles.moveBar}>
-                    <Pressable style={styles.moveBtn} onPress={() => move(i, -1)} disabled={i === 0} hitSlop={4}>
-                      <Ionicons name="chevron-back" size={16} color={i === 0 ? '#888' : '#fff'} />
-                    </Pressable>
-                    <Pressable style={styles.moveBtn} onPress={() => move(i, 1)} disabled={i === items.length - 1} hitSlop={4}>
-                      <Ionicons name="chevron-forward" size={16} color={i === items.length - 1 ? '#888' : '#fff'} />
-                    </Pressable>
-                  </View>
-                )}
-              </View>
-            ))}
-            {items.length < 9 && (
-              <Pressable style={styles.addBtn} onPress={pick}>
-                <Ionicons name="camera-outline" size={26} color={Brand.textSub} />
-                <Text style={styles.addText}>添加</Text>
-              </Pressable>
-            )}
+          <View style={{ marginTop: S.sm, height: Math.ceil(gridData.length / 3) * COLW }}>
+            <DraggableGrid
+              numColumns={3}
+              data={gridData}
+              itemHeight={COLW}
+              delayLongPress={150}
+              renderItem={renderTile}
+              onItemPress={onTilePress}
+              onDragRelease={onDragRelease}
+            />
           </View>
-          <Text style={styles.hint}>点击照片可全屏查看；用 ◀ ▶ 调整顺序（第一张为封面）。真实实拍更容易被评为「干货」、赚积分、上首页。</Text>
 
           {isAdmin && (
             <View style={styles.aiImgBox}>
@@ -543,13 +588,27 @@ const styles = StyleSheet.create({
     color: Brand.text,
     lineHeight: 24,
   },
+  cellWrap: { width: COLW, height: COLW, alignItems: 'center', justifyContent: 'center' },
+  tileInner: { width: TILE, height: TILE, borderRadius: R.md },
+  tileImg: { width: TILE, height: TILE, borderRadius: R.md, backgroundColor: Brand.bg },
+  addBtnGrid: {
+    width: TILE,
+    height: TILE,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: Brand.border,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
   mediaWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
   thumb: { width: 100, height: 100 },
   thumbTap: { width: 100, height: 100 },
   thumbImg: { width: 100, height: 100, borderRadius: R.md, backgroundColor: Brand.bg },
   videoThumb: { backgroundColor: '#3A3D42', alignItems: 'center', justifyContent: 'center' },
   videoLabel: { color: '#fff', fontSize: F.tiny, marginTop: 2 },
-  remove: { position: 'absolute', top: -6, right: -6, backgroundColor: '#fff', borderRadius: 999 },
+  remove: { position: 'absolute', top: 2, right: 2, backgroundColor: '#fff', borderRadius: 999 },
   coverBadge: {
     position: 'absolute',
     top: 4,
