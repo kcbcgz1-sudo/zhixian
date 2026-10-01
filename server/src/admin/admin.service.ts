@@ -89,6 +89,7 @@ export class AdminService {
 
   async posts() {
     const list = await this.prisma.post.findMany({
+      where: { status: { not: PostStatus.reviewing } },
       orderBy: { createdAt: 'desc' },
       include: { author: true },
       take: 200,
