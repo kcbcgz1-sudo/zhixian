@@ -290,6 +290,7 @@ export type AdminUser = {
   status: string;
   points: number;
   level: number;
+  verified: boolean;
   posts: number;
   createdAt: string;
 };
@@ -330,6 +331,12 @@ export const adminUserSetLevel = (id: string, level: number) =>
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ level }),
+  });
+export const adminUserVerify = (id: string, on: boolean) =>
+  authFetch(`/admin/users/${id}/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ on }),
   });
 
 // ── 관리자: 카테고리 관리 ──

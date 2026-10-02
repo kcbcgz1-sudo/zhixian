@@ -11,6 +11,7 @@ import {
   adminUsers,
   adminUserSetLevel,
   adminUserUnban,
+  adminUserVerify,
   type AdminUser,
 } from '@/data/api';
 import { useAuth } from '@/data/auth';
@@ -85,6 +86,12 @@ export default function AdminUsersScreen() {
                           <Text style={styles.adminBadgeText}>管理员</Text>
                         </View>
                       )}
+                      {u.verified && (
+                        <View style={styles.vBadge}>
+                          <Ionicons name="checkmark-circle" size={12} color="#fff" />
+                          <Text style={styles.vBadgeText}>实名</Text>
+                        </View>
+                      )}
                       {banned && (
                         <View style={styles.banBadge}>
                           <Text style={styles.banBadgeText}>已封禁</Text>
@@ -105,16 +112,26 @@ export default function AdminUsersScreen() {
                       </Pressable>
                     </View>
                   </View>
-                  {!isAdmin &&
-                    (banned ? (
-                      <Pressable style={[styles.btn, styles.btnGreen]} onPress={() => act(() => adminUserUnban(u.id))}>
-                        <Text style={styles.btnGreenText}>解封</Text>
-                      </Pressable>
-                    ) : (
-                      <Pressable style={[styles.btn, styles.btnRed]} onPress={() => act(() => adminUserBan(u.id))}>
-                        <Text style={styles.btnRedText}>封禁</Text>
-                      </Pressable>
-                    ))}
+                  <View style={styles.rightCol}>
+                    <Pressable
+                      style={[styles.btn, u.verified ? styles.btnVerifyOn : styles.btnVerify]}
+                      onPress={() => act(() => adminUserVerify(u.id, !u.verified))}
+                    >
+                      <Text style={u.verified ? styles.btnVerifyOnText : styles.btnVerifyText}>
+                        {u.verified ? '取消实名' : '实名认证'}
+                      </Text>
+                    </Pressable>
+                    {!isAdmin &&
+                      (banned ? (
+                        <Pressable style={[styles.btn, styles.btnGreen]} onPress={() => act(() => adminUserUnban(u.id))}>
+                          <Text style={styles.btnGreenText}>解封</Text>
+                        </Pressable>
+                      ) : (
+                        <Pressable style={[styles.btn, styles.btnRed]} onPress={() => act(() => adminUserBan(u.id))}>
+                          <Text style={styles.btnRedText}>封禁</Text>
+                        </Pressable>
+                      ))}
+                  </View>
                 </View>
               );
             })}
@@ -158,6 +175,16 @@ const styles = StyleSheet.create({
   adminBadgeText: { color: '#fff', fontSize: F.tiny, fontWeight: '700' },
   banBadge: { backgroundColor: '#F3D9D2', borderRadius: R.sm, paddingHorizontal: 6, paddingVertical: 1 },
   banBadgeText: { color: Brand.danger, fontSize: F.tiny, fontWeight: '700' },
+  vBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: '#2F80ED',
+    borderRadius: R.sm,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  vBadgeText: { color: '#fff', fontSize: F.tiny, fontWeight: '700' },
   sub: { fontSize: F.small, color: Brand.textSub },
   lvRow: { flexDirection: 'row', alignItems: 'center', gap: S.sm, marginTop: 4 },
   lvLabel: { fontSize: F.tiny, color: Brand.textSub },
@@ -171,7 +198,12 @@ const styles = StyleSheet.create({
   },
   lvBtnText: { fontSize: 18, fontWeight: '800', color: Brand.greenDeep, lineHeight: 20 },
   lvText: { fontSize: F.small, fontWeight: '800', color: Brand.text, minWidth: 36, textAlign: 'center' },
-  btn: { paddingHorizontal: S.lg, paddingVertical: S.sm, borderRadius: R.md },
+  rightCol: { gap: 6, alignItems: 'stretch', minWidth: 76 },
+  btn: { paddingHorizontal: S.lg, paddingVertical: S.sm, borderRadius: R.md, alignItems: 'center' },
+  btnVerify: { backgroundColor: '#E8F1FD' },
+  btnVerifyText: { color: '#1E6FD9', fontWeight: '700', fontSize: F.small },
+  btnVerifyOn: { backgroundColor: '#E6F4EA' },
+  btnVerifyOnText: { color: Brand.greenDeep, fontWeight: '700', fontSize: F.small },
   btnGreen: { backgroundColor: Brand.green },
   btnGreenText: { color: '#fff', fontWeight: '700', fontSize: F.small },
   btnRed: { backgroundColor: '#FBE9E7' },

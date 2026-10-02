@@ -60,6 +60,12 @@ export class AdminController {
     return this.admin.setUserLevel(id, Number(body?.level));
   }
 
+  @Post('users/:id/verify')
+  async setVerified(@Param('id') id: string, @Body() body: any, @Req() req: Request) {
+    await this.requireAdmin(req);
+    return this.admin.setUserVerified(id, !!body?.on);
+  }
+
   // ── 포인트 규칙 설정 ──
   @Get('point-config')
   async pointConfig(@Req() req: Request) {

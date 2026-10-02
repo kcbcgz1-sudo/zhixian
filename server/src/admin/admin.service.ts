@@ -42,6 +42,7 @@ export class AdminService {
       status: u.status,
       points: u.points,
       level: u.level ?? 1,
+      verified: u.verified === true,
       posts: u._count.posts,
       createdAt: u.createdAt,
     }));
@@ -50,6 +51,12 @@ export class AdminService {
   async setUserStatus(id: string, status: string) {
     await this.prisma.user.update({ where: { id }, data: { status } });
     return { ok: true };
+  }
+
+  // ── 实名认证 수동 부여/해제 ──
+  async setUserVerified(id: string, on: boolean) {
+    await this.prisma.user.update({ where: { id }, data: { verified: !!on } });
+    return { ok: true, verified: !!on };
   }
 
   async setUserLevel(id: string, level: number) {

@@ -36,6 +36,7 @@ model User {
   level        Int           @default(1)
   status       String        @default("active") // active/limited/banned
   role         String        @default("user")   // user/admin
+  verified     Boolean       @default(false)    // 实名认证 (관리자 수동 부여)
   posts        Post[]
   interactions Interaction[]
   ledger       PointsLedger[]
