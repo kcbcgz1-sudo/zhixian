@@ -13,6 +13,7 @@ import { PointsModule } from './points/points.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { PostsModule } from './posts/posts.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { SocialModule } from './social/social.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
 
 @Module({
@@ -30,6 +31,7 @@ import { UploadsModule } from './uploads/uploads.module.js';
     CheckinModule,
     AiModule,
     AutogenModule,
+    SocialModule,
   ],
   controllers: [AppController],
   providers: [AppService],

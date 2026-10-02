@@ -179,6 +179,7 @@ export default function MineScreen() {
 
           <View style={styles.rows}>
             <Row label="我的发布" onPress={() => router.push('/my-posts?type=mine' as any)} />
+            <Row label="我的关注" onPress={() => router.push('/following' as any)} />
             <Row label="我的收藏" onPress={() => router.push('/my-posts?type=fav' as any)} />
             <Row label="我的点赞" onPress={() => router.push('/my-posts?type=liked' as any)} />
             <Row label="关于知闲" />

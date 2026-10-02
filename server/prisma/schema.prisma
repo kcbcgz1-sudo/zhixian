@@ -44,7 +44,52 @@ model User {
   activities   Activity[]
   activitySignups ActivitySignup[]
   checkins     CheckIn[]
+  following      Follow[]       @relation("follower")
+  followers      Follow[]       @relation("following")
+  convosA        Conversation[] @relation("convA")
+  convosB        Conversation[] @relation("convB")
+  messagesSent   Message[]      @relation("msgSender")
   createdAt    DateTime      @default(now())
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  userAId   String
+  userBId   String
+  userA     User      @relation("convA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB     User      @relation("convB", fields: [userBId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  lastText  String?
+  lastAt    DateTime  @default(now())
+  aReadAt   DateTime?
+  bReadAt   DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([userAId, userBId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("msgSender", fields: [senderId], references: [id], onDelete: Cascade)
+  body           String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
 }
 
 model Category {

@@ -4,30 +4,49 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PostCard } from '../(tabs)/index';
 import { Brand, F, R, S } from '@/constants/brand';
-import { fetchUser, fetchUserPosts, type UserProfile } from '@/data/api';
+import {
+  chatWith,
+  fetchUser,
+  fetchUserPosts,
+  followUser,
+  getRelation,
+  unfollowUser,
+  type FollowRelation,
+  type UserProfile,
+} from '@/data/api';
+import { useAuth } from '@/data/auth';
 import { type Post } from '@/data/seed';
 
 export default function UserProfileScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
+  const { user } = useAuth();
+  const isMe = !!user?.id && String(id) === user.id;
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [rel, setRel] = useState<FollowRelation | null>(null);
+  const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
     let alive = true;
     setLoading(true);
-    Promise.all([fetchUser(String(id)), fetchUserPosts(String(id))])
-      .then(([u, ps]) => {
+    Promise.all([
+      fetchUser(String(id)),
+      fetchUserPosts(String(id)),
+      getRelation(String(id)).catch(() => null),
+    ])
+      .then(([u, ps, r]) => {
         if (alive) {
           setProfile(u);
           setPosts(ps);
+          setRel(r);
         }
       })
       .catch(() => {})
@@ -38,6 +57,40 @@ export default function UserProfileScreen() {
       alive = false;
     };
   }, [id]);
+
+  function needLogin() {
+    const m = '请先登录';
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.alert(m);
+    else Alert.alert('提示', m);
+  }
+
+  async function onToggleFollow() {
+    if (!user) return needLogin();
+    if (busy || !rel) return;
+    setBusy(true);
+    const prev = rel;
+    const next = !rel.isFollowing;
+    setRel({ ...rel, isFollowing: next, followers: Math.max(0, rel.followers + (next ? 1 : -1)) });
+    try {
+      await (next ? followUser(String(id)) : unfollowUser(String(id)));
+    } catch {
+      setRel(prev);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onDm() {
+    if (!user) return needLogin();
+    try {
+      const r = await chatWith(String(id));
+      router.push(`/chat/${r.conversationId}` as any);
+    } catch (e: any) {
+      const m = String(e?.message ?? '操作失败');
+      if (Platform.OS === 'web' && typeof window !== 'undefined') window.alert(m);
+      else Alert.alert('操作失败', m);
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -108,8 +161,34 @@ export default function UserProfileScreen() {
                 </View>
                 <View style={styles.statsRow}>
                   <Text style={styles.statNum}>{profile.postCount}</Text>
-                  <Text style={styles.statLabel}>发布内容</Text>
+                  <Text style={styles.statLabel}>发布</Text>
+                  <Text style={styles.statNum}>{rel?.followers ?? 0}</Text>
+                  <Text style={styles.statLabel}>粉丝</Text>
+                  <Text style={styles.statNum}>{rel?.following ?? 0}</Text>
+                  <Text style={styles.statLabel}>关注</Text>
                 </View>
+                {!isMe && (
+                  <View style={styles.actions}>
+                    <Pressable
+                      style={[styles.actBtn, rel?.isFollowing ? styles.actBtnOff : styles.actBtnOn]}
+                      onPress={onToggleFollow}
+                      disabled={busy}
+                    >
+                      <Ionicons
+                        name={rel?.isFollowing ? 'checkmark' : 'add'}
+                        size={16}
+                        color={rel?.isFollowing ? Brand.text : '#fff'}
+                      />
+                      <Text style={rel?.isFollowing ? styles.actBtnOffText : styles.actBtnOnText}>
+                        {rel?.isFollowing ? '已关注' : '关注'}
+                      </Text>
+                    </Pressable>
+                    <Pressable style={[styles.actBtn, styles.actBtnDm]} onPress={onDm}>
+                      <Ionicons name="chatbubble-ellipses-outline" size={16} color={Brand.green} />
+                      <Text style={styles.actBtnDmText}>私信</Text>
+                    </Pressable>
+                  </View>
+                )}
                 <Text style={styles.listTitle}>TA 的内容</Text>
               </View>
             }
@@ -178,7 +257,24 @@ const styles = StyleSheet.create({
     marginTop: S.md,
   },
   statNum: { fontSize: 18, fontWeight: '900', color: Brand.green },
-  statLabel: { fontSize: F.small, color: Brand.textSub },
+  statLabel: { fontSize: F.small, color: Brand.textSub, marginRight: S.md },
+  actions: { flexDirection: 'row', gap: S.sm, paddingHorizontal: S.lg, marginTop: S.md },
+  actBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 9,
+    paddingHorizontal: S.lg,
+    borderRadius: 999,
+    flex: 1,
+  },
+  actBtnOn: { backgroundColor: Brand.green },
+  actBtnOnText: { color: '#fff', fontWeight: '800', fontSize: F.small },
+  actBtnOff: { backgroundColor: '#E7EAEC' },
+  actBtnOffText: { color: Brand.text, fontWeight: '800', fontSize: F.small },
+  actBtnDm: { backgroundColor: Brand.greenSoft },
+  actBtnDmText: { color: Brand.green, fontWeight: '800', fontSize: F.small },
   listTitle: {
     fontSize: F.body,
     fontWeight: '800',

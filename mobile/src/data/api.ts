@@ -645,3 +645,34 @@ export async function fetchUser(id: string): Promise<UserProfile> {
 export async function fetchUserPosts(id: string): Promise<Post[]> {
   return (await authFetch(`/posts/user/${id}/posts`)) as Post[];
 }
+
+// ── 소셜: 팔로우(关注) + 채팅(私信) ──
+export type FollowRelation = { isFollowing: boolean; followers: number; following: number };
+export type UserCard = { id: string; nickname: string; avatar: string | null; level: number; verified: boolean };
+export type ChatMessage = { id: string; mine: boolean; body: string; date: string };
+export type ChatConversation = { id: string; other: UserCard; lastText: string; lastAt: string | null; unread: number };
+
+export const followUser = (id: string) => authFetch(`/social/follow/${id}`, { method: 'POST' });
+export const unfollowUser = (id: string) => authFetch(`/social/follow/${id}`, { method: 'DELETE' });
+export const getRelation = (id: string): Promise<FollowRelation> => authFetch(`/social/relation/${id}`);
+export const getMyFollowing = (): Promise<UserCard[]> => authFetch('/social/following');
+
+export const chatWith = (userId: string): Promise<{ conversationId: string; other: UserCard }> =>
+  authFetch('/social/chat/with', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId }),
+  });
+export const listConversations = (): Promise<ChatConversation[]> => authFetch('/social/chat/conversations');
+export const chatUnread = (): Promise<{ count: number }> => authFetch('/social/chat/unread');
+export const getChatMessages = (
+  convId: string,
+): Promise<{ other: UserCard | null; messages: ChatMessage[] }> =>
+  authFetch(`/social/chat/${convId}/messages`);
+export const sendChatMessage = (convId: string, body: string): Promise<ChatMessage> =>
+  authFetch(`/social/chat/${convId}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body }),
+  });
+export const markChatRead = (convId: string) => authFetch(`/social/chat/${convId}/read`, { method: 'POST' });
