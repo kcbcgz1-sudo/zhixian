@@ -130,6 +130,7 @@ export class AutogenService implements OnModuleInit {
           try {
             const topic =
               `${c.name}（广州及周边户外，面向70后80后（退休/半退休）中老年）。换一个新颖又实用的角度，` +
+              `每篇只聚焦一个具体地点或一条线路，围绕这一个地点把实用信息写透，不要在同一篇里罗列或对比多个地点/景点。` +
               `避免与这些近期标题重复：${avoid.join('、') || '（暂无）'}`;
             const draft = await this.ai.generateDraft(topic, c.code, '广州');
             if (!draft.title || avoid.includes(draft.title)) continue;
