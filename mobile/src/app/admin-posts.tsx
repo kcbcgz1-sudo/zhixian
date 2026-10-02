@@ -183,11 +183,7 @@ export default function AdminPostsScreen() {
         </View>
 
         {/* 빠른 필터 */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipRow}
-        >
+        <View style={styles.chipRow}>
           {QUICKS.map((qk) => (
             <Pressable
               key={qk.key}
@@ -197,15 +193,11 @@ export default function AdminPostsScreen() {
               <Text style={[styles.chipText, quick === qk.key && styles.chipTextOn]}>{qk.label}</Text>
             </Pressable>
           ))}
-        </ScrollView>
+        </View>
 
         {/* 분류 필터 */}
         {cats.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chipRow}
-          >
+          <View style={[styles.chipRow, styles.chipRowCat]}>
             <Pressable
               onPress={() => setCat('all')}
               style={[styles.chip, cat === 'all' && styles.chipOn]}
@@ -221,7 +213,7 @@ export default function AdminPostsScreen() {
                 <Text style={[styles.chipText, cat === c.code && styles.chipTextOn]}>{c.name}</Text>
               </Pressable>
             ))}
-          </ScrollView>
+          </View>
         )}
 
         {loading ? (
@@ -338,7 +330,20 @@ const styles = StyleSheet.create({
     height: 40,
   },
   searchInput: { flex: 1, fontSize: F.body, color: Brand.text, paddingVertical: 0 },
-  chipRow: { paddingHorizontal: S.lg, paddingVertical: S.sm, gap: S.sm, backgroundColor: Brand.card },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: S.lg,
+    paddingVertical: S.sm,
+    gap: S.sm,
+    backgroundColor: Brand.card,
+  },
+  chipRowCat: {
+    paddingTop: 0,
+    paddingBottom: S.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Brand.border,
+  },
   chip: {
     paddingHorizontal: S.md,
     paddingVertical: 6,
