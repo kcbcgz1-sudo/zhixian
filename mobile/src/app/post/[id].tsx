@@ -53,6 +53,12 @@ export default function PostDetail() {
   const [dmOpen, setDmOpen] = useState(false);
   const [dmText, setDmText] = useState('');
   const [dmSending, setDmSending] = useState(false);
+  const [imgRatios, setImgRatios] = useState<Record<string, number>>({});
+  const onImgLoad = (url: string) => (e: any) => {
+    const w = e?.source?.width;
+    const h = e?.source?.height;
+    if (w && h) setImgRatios((prev) => (prev[url] ? prev : { ...prev, [url]: w / h }));
+  };
 
   useEffect(() => {
     let alive = true;
@@ -262,7 +268,12 @@ export default function PostDetail() {
               {videoUri ? (
                 <VideoView player={player} style={styles.hero} contentFit="cover" nativeControls />
               ) : images.length > 0 ? (
-                <Image source={{ uri: images[0].url }} style={styles.hero} contentFit="cover" />
+                <Image
+                  source={{ uri: images[0].url }}
+                  style={[styles.photo, { aspectRatio: imgRatios[images[0].url] ?? 16 / 9 }]}
+                  contentFit="cover"
+                  onLoad={onImgLoad(images[0].url)}
+                />
               ) : (
                 <LinearGradient colors={['#CDEBD6', '#9FD7B4']} style={styles.hero}>
                   <Ionicons name="image-outline" size={40} color="#5FA277" />
@@ -276,7 +287,13 @@ export default function PostDetail() {
 
               {/* 추가 이미지 */}
               {images.slice(videoUri ? 0 : 1).map((img, i) => (
-                <Image key={i} source={{ uri: img.url }} style={styles.subImg} contentFit="cover" />
+                <Image
+                  key={i}
+                  source={{ uri: img.url }}
+                  style={[styles.photo, styles.photoGap, { aspectRatio: imgRatios[img.url] ?? 16 / 9 }]}
+                  contentFit="cover"
+                  onLoad={onImgLoad(img.url)}
+                />
               ))}
 
               <Text style={styles.title}>{post?.title ?? '内容不存在'}</Text>
@@ -450,7 +467,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: S.lg,
     paddingVertical: S.md,
   },
-  content: { paddingHorizontal: S.lg, paddingBottom: S.xl },
+  content: { paddingHorizontal: S.lg, paddingBottom: S.xl, width: '100%', maxWidth: 720, alignSelf: 'center' },
   hero: {
     width: '100%',
     height: 300,
@@ -461,6 +478,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   subImg: { width: '100%', height: 240, borderRadius: R.md, marginTop: S.md, backgroundColor: Brand.bg },
+  photo: { width: '100%', maxHeight: 560, borderRadius: R.md, backgroundColor: '#000' },
+  photoGap: { marginTop: S.md },
   aiTag: {
     position: 'absolute',
     right: S.sm,
