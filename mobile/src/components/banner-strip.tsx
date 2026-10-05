@@ -14,7 +14,7 @@ import {
   View,
 } from 'react-native';
 
-import { Brand, F, R, S } from '@/constants/brand';
+import { Brand, F, S } from '@/constants/brand';
 import { fetchBanners, type Banner } from '@/data/api';
 
 const GUTTER = S.lg;
@@ -23,14 +23,12 @@ export default function BannerStrip({ placement }: { placement: string }) {
   const router = useRouter();
   const [banners, setBanners] = useState<Banner[]>([]);
   const [idx, setIdx] = useState(0);
-  const [w, setW] = useState(Math.max(0, Dimensions.get('window').width - GUTTER * 2));
+  const [w, setW] = useState(Dimensions.get('window').width);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    const sub = Dimensions.addEventListener('change', ({ window }) =>
-      setW(Math.max(0, Math.min(720, window.width) - GUTTER * 2)),
-    );
-    setW(Math.max(0, Math.min(720, Dimensions.get('window').width) - GUTTER * 2));
+    const sub = Dimensions.addEventListener('change', ({ window }) => setW(window.width));
+    setW(Dimensions.get('window').width);
     return () => sub.remove();
   }, []);
 
@@ -115,8 +113,8 @@ export default function BannerStrip({ placement }: { placement: string }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginHorizontal: GUTTER, marginBottom: S.md, borderRadius: R.lg, overflow: 'hidden' },
-  img: { aspectRatio: 2.6, borderRadius: R.lg, backgroundColor: Brand.greenSoft },
+  wrap: { marginHorizontal: -GUTTER, marginBottom: S.md, overflow: 'hidden' },
+  img: { aspectRatio: 2.6, backgroundColor: Brand.greenSoft },
   titleWrap: {
     position: 'absolute',
     left: 0,
