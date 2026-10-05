@@ -89,7 +89,7 @@ export default function BannerStrip({ placement }: { placement: string }) {
         scrollEnabled={banners.length > 1}
       >
         {banners.map((b) => (
-          <Pressable key={b.id} onPress={() => onPress(b)} style={{ width: w }}>
+          <Pressable key={b.id} onPress={() => onPress(b)} style={[styles.slide, { width: w }]}>
             <Image source={{ uri: b.image }} style={[styles.img, { width: w }]} contentFit="cover" />
             {!!b.title && (
               <View style={styles.titleWrap}>
@@ -113,7 +113,8 @@ export default function BannerStrip({ placement }: { placement: string }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginHorizontal: -GUTTER, marginBottom: S.md, borderRadius: R.lg, overflow: 'hidden' },
+  wrap: { marginHorizontal: -GUTTER, marginBottom: S.md },
+  slide: { borderRadius: R.lg, overflow: 'hidden' },
   img: { aspectRatio: 2.6, borderRadius: R.lg, backgroundColor: Brand.greenSoft },
   titleWrap: {
     position: 'absolute',
