@@ -14,7 +14,7 @@ import {
   View,
 } from 'react-native';
 
-import { Brand, F, S } from '@/constants/brand';
+import { Brand, F, R, S } from '@/constants/brand';
 import { fetchBanners, type Banner } from '@/data/api';
 
 const GUTTER = S.lg;
@@ -113,8 +113,8 @@ export default function BannerStrip({ placement }: { placement: string }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginHorizontal: -GUTTER, marginBottom: S.md, overflow: 'hidden' },
-  img: { aspectRatio: 2.6, backgroundColor: Brand.greenSoft },
+  wrap: { marginHorizontal: -GUTTER, marginBottom: S.md, borderRadius: R.lg, overflow: 'hidden' },
+  img: { aspectRatio: 2.6, borderRadius: R.lg, backgroundColor: Brand.greenSoft },
   titleWrap: {
     position: 'absolute',
     left: 0,
