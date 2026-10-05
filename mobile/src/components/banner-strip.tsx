@@ -18,7 +18,7 @@ import { Brand, F, R, S } from '@/constants/brand';
 import { fetchBanners, type Banner } from '@/data/api';
 
 const GUTTER = S.lg;
-const SIDE = 8; // 화면 가장자리로부터의 좌우 여백(px) — 둥근 모서리가 보이도록
+const SIDE = GUTTER; // 글 카드와 동일한 좌우 여백(16) — 자연스럽게 정렬
 
 export default function BannerStrip({ placement }: { placement: string }) {
   const router = useRouter();
