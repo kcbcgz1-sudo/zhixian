@@ -20,6 +20,7 @@ import { Brand, F, R, S } from '@/constants/brand';
 import { injectThinBar } from '@/constants/thinbar';
 import { DEFAULT_PROVINCE } from '@/constants/regions';
 import RegionModal from '@/components/region-modal';
+import BannerStrip from '@/components/banner-strip';
 import { deletePost, fetchCategories, fetchPosts } from '@/data/api';
 import { useAuth } from '@/data/auth';
 import { type Category, type Post } from '@/data/seed';
@@ -172,6 +173,7 @@ export default function HomeScreen() {
               const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
               if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 300) loadMore();
             }}>
+            <BannerStrip placement={filter === 'all' ? 'home' : String(filter)} />
             {posts.map((post) => (
               <PostCard
                 key={post.id}

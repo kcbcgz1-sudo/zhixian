@@ -7,6 +7,7 @@ import { AutogenModule } from './autogen/autogen.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
+import { BannersModule } from './banners/banners.module.js';
 import { CategoriesModule } from './categories/categories.module.js';
 import { LevelsModule } from './levels/levels.module.js';
 import { PointsModule } from './points/points.module.js';
@@ -32,6 +33,7 @@ import { UploadsModule } from './uploads/uploads.module.js';
     AiModule,
     AutogenModule,
     SocialModule,
+    BannersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

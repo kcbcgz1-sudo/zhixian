@@ -252,3 +252,16 @@ model AppSetting {
   key   String @id
   value String
 }
+
+model Banner {
+  id        String   @id @default(cuid())
+  image     String // 배너 이미지 URL
+  title     String? // 설명(옵션)
+  link      String? // 탭 시 이동: postId 또는 http(s) URL (옵션)
+  placement String   @default("home") // home | 카테고리 code (fishing/hiking/...)
+  active    Boolean  @default(true)
+  sort      Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([placement, active, sort])
+}

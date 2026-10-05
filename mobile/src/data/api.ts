@@ -676,3 +676,46 @@ export const sendChatMessage = (convId: string, body: string): Promise<ChatMessa
     body: JSON.stringify({ body }),
   });
 export const markChatRead = (convId: string) => authFetch(`/social/chat/${convId}/read`, { method: 'POST' });
+
+// ── 배너(횡배너) ──
+export type Banner = {
+  id: string;
+  image: string;
+  title: string;
+  link: string;
+  placement: string;
+  active: boolean;
+  sort: number;
+  createdAt: string;
+};
+export type BannerInput = {
+  image?: string;
+  title?: string;
+  link?: string;
+  placement?: string;
+  active?: boolean;
+  sort?: number;
+};
+export async function fetchBanners(placement: string): Promise<Banner[]> {
+  try {
+    const res = await fetch(`${API_BASE}/banners?placement=${encodeURIComponent(placement)}`);
+    if (!res.ok) return [];
+    return (await res.json()) as Banner[];
+  } catch {
+    return [];
+  }
+}
+export const adminBanners = (): Promise<Banner[]> => authFetch('/admin/banners');
+export const adminBannerCreate = (data: BannerInput): Promise<Banner> =>
+  authFetch('/admin/banners', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+export const adminBannerUpdate = (id: string, data: BannerInput): Promise<Banner> =>
+  authFetch(`/admin/banners/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+export const adminBannerDelete = (id: string) => authFetch(`/admin/banners/${id}`, { method: 'DELETE' });
