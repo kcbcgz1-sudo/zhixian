@@ -18,17 +18,18 @@ import { Brand, F, R, S } from '@/constants/brand';
 import { fetchBanners, type Banner } from '@/data/api';
 
 const GUTTER = S.lg;
+const SIDE = 8; // 화면 가장자리로부터의 좌우 여백(px) — 둥근 모서리가 보이도록
 
 export default function BannerStrip({ placement }: { placement: string }) {
   const router = useRouter();
   const [banners, setBanners] = useState<Banner[]>([]);
   const [idx, setIdx] = useState(0);
-  const [w, setW] = useState(Dimensions.get('window').width);
+  const [w, setW] = useState(Math.max(0, Dimensions.get('window').width - SIDE * 2));
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    const sub = Dimensions.addEventListener('change', ({ window }) => setW(window.width));
-    setW(Dimensions.get('window').width);
+    const sub = Dimensions.addEventListener('change', ({ window }) => setW(Math.max(0, window.width - SIDE * 2)));
+    setW(Math.max(0, Dimensions.get('window').width - SIDE * 2));
     return () => sub.remove();
   }, []);
 
@@ -90,7 +91,11 @@ export default function BannerStrip({ placement }: { placement: string }) {
       >
         {banners.map((b) => (
           <Pressable key={b.id} onPress={() => onPress(b)} style={[styles.slide, { width: w }]}>
-            <Image source={{ uri: b.image }} style={[styles.img, { width: w }]} contentFit="cover" />
+            <Image
+              source={{ uri: b.image }}
+              style={[styles.img, { width: w, height: Math.round(w / 2.6) }]}
+              contentFit="cover"
+            />
             {!!b.title && (
               <View style={styles.titleWrap}>
                 <Text style={styles.title} numberOfLines={1}>
@@ -113,9 +118,9 @@ export default function BannerStrip({ placement }: { placement: string }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginHorizontal: -GUTTER, marginBottom: S.md },
+  wrap: { marginHorizontal: -(GUTTER - SIDE), marginBottom: S.md },
   slide: { borderRadius: R.lg, overflow: 'hidden' },
-  img: { aspectRatio: 2.6, borderRadius: R.lg, backgroundColor: Brand.greenSoft },
+  img: { borderRadius: R.lg, backgroundColor: Brand.greenSoft },
   titleWrap: {
     position: 'absolute',
     left: 0,
