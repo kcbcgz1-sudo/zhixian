@@ -10,6 +10,7 @@ const QWEN_VL_MODEL = process.env.DASHSCOPE_QWEN_VL_MODEL || 'qwen-vl-max';
 const WANX_CREATE = process.env.DASHSCOPE_WANX_CREATE || 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis';
 const WANX_TASK = process.env.DASHSCOPE_WANX_TASK || 'https://dashscope.aliyuncs.com/api/v1/tasks';
 const WANX_MODEL = process.env.DASHSCOPE_WANX_MODEL || 'wanx2.1-t2i-turbo';
+const ASR_MODEL = process.env.DASHSCOPE_ASR_MODEL || 'qwen3-asr-flash';
 const UPLOAD_DIR = process.env.UPLOAD_DIR || '/var/www/zhixian-uploads';
 const PUBLIC_ORIGIN = process.env.PUBLIC_ORIGIN || 'https://app.emilano.net';
 
@@ -201,5 +202,35 @@ export class AiService {
     const fn = `ai-${Date.now()}-${randomUUID()}.png`;
     await writeFile(join(UPLOAD_DIR, fn), buf);
     return { url: `${PUBLIC_ORIGIN}/uploads/${fn}`, type: 'image' };
+  }
+
+  // 회원용: 음성(WAV 등) → 텍스트 (통의천문 qwen3-asr-flash, 동기)
+  async transcribe(userId: string, buf: Buffer, mime?: string) {
+    this.ensureKey();
+    if (!buf || buf.length < 1200) throw new BadRequestException('录音太短，请按住多说几句');
+    // 회원 남용 방지: 사용자별 1시간 40회 (assist와 별도 버킷)
+    this.checkRate('asr:' + userId, 40, 3600000);
+    const subtype = mime && mime.includes('/') ? mime.split('/')[1].split(';')[0] : 'wav';
+    const dataUri = `data:audio/${subtype};base64,${buf.toString('base64')}`;
+    const res = await fetch(`${QWEN_BASE}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${KEY}` },
+      body: JSON.stringify({
+        model: ASR_MODEL,
+        messages: [
+          { role: 'user', content: [{ type: 'input_audio', input_audio: { data: dataUri } }] },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new BadRequestException(`语音识别失败(${res.status})：${txt.slice(0, 200)}`);
+    }
+    const data: any = await res.json();
+    let text = String(data?.choices?.[0]?.message?.content ?? '').trim();
+    // ASR 모델이 간혹 공백/문장부호만 반환할 때
+    if (!text || !/[一-龥a-zA-Z0-9]/.test(text))
+      throw new BadRequestException('没听清，请在安静环境再说一次');
+    return { text };
   }
 }

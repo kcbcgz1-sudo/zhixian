@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -22,8 +22,9 @@ import { DraggableGrid } from 'react-native-draggable-grid';
 
 import { Brand, F, R, S } from '@/constants/brand';
 import { injectThinBar } from '@/constants/thinbar';
-import { aiAssist, aiImage, createPost, fetchCategories, fetchPost, updatePost, uploadMedia, type ApiCategory } from '@/data/api';
+import { aiAsr, aiAssist, aiImage, createPost, fetchCategories, fetchPost, updatePost, uploadMedia, type ApiCategory } from '@/data/api';
 import { shrinkImage } from '@/data/image';
+import { startWavRecording, voiceSupported, type WavRecorder } from '@/data/voiceWeb';
 import { useAuth } from '@/data/auth';
 import { type Category } from '@/data/seed';
 import RegionInline from '@/components/region-inline';
@@ -111,6 +112,79 @@ export default function PostNewScreen() {
   const [imgPrompt, setImgPrompt] = useState('');
   const [genImg, setGenImg] = useState(false);
   const isAdmin = user?.role === 'admin';
+
+  // ── 음성 입력(웹 전용) ──
+  const voiceOk = Platform.OS === 'web' && voiceSupported();
+  const [voiceState, setVoiceState] = useState<'idle' | 'rec' | 'busy'>('idle');
+  const [voiceSecs, setVoiceSecs] = useState(0);
+  const recRef = useRef<WavRecorder | null>(null);
+  const timerRef = useRef<any>(null);
+  const MAX_SEC = 120;
+
+  function stopTimer() {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }
+  useEffect(() => stopTimer, []);
+
+  async function transcribeBlob(blob: Blob) {
+    setVoiceState('busy');
+    try {
+      const r = await aiAsr(blob);
+      const text = (r?.text || '').trim();
+      if (text) setBody((prev) => (prev && !/\s$/.test(prev) ? prev + '\n' : prev) + text);
+    } catch (e: any) {
+      Alert.alert('语音识别失败', String(e?.message ?? '请重试'));
+    } finally {
+      setVoiceState('idle');
+      setVoiceSecs(0);
+    }
+  }
+
+  async function finishRecording() {
+    stopTimer();
+    const rec = recRef.current;
+    recRef.current = null;
+    if (!rec) {
+      setVoiceState('idle');
+      setVoiceSecs(0);
+      return;
+    }
+    const blob = await rec.stop();
+    await transcribeBlob(blob);
+  }
+
+  async function startRecording() {
+    if (!user) {
+      Alert.alert('请先登录', '语音输入需要登录账号');
+      router.push('/login' as any);
+      return;
+    }
+    try {
+      const rec = await startWavRecording();
+      recRef.current = rec;
+      setVoiceSecs(0);
+      setVoiceState('rec');
+      timerRef.current = setInterval(() => {
+        setVoiceSecs((s) => {
+          const n = s + 1;
+          if (n >= MAX_SEC) finishRecording();
+          return n >= MAX_SEC ? MAX_SEC : n;
+        });
+      }, 1000);
+    } catch {
+      Alert.alert('无法使用麦克风', '请在浏览器允许麦克风权限后重试');
+      setVoiceState('idle');
+    }
+  }
+
+  function onVoice() {
+    if (voiceState === 'busy') return;
+    if (voiceState === 'rec') finishRecording();
+    else startRecording();
+  }
 
   async function onGenImage() {
     const pr = imgPrompt.trim() || title.trim();
@@ -403,6 +477,32 @@ export default function PostNewScreen() {
             multiline
             textAlignVertical="top"
           />
+          {voiceOk && (
+            <>
+              <Pressable
+                style={[styles.voiceBtn, voiceState === 'rec' && styles.voiceBtnRec]}
+                onPress={onVoice}
+                disabled={voiceState === 'busy'}>
+                {voiceState === 'busy' ? (
+                  <ActivityIndicator color={Brand.green} size="small" />
+                ) : (
+                  <Ionicons
+                    name={voiceState === 'rec' ? 'stop-circle' : 'mic'}
+                    size={22}
+                    color={voiceState === 'rec' ? Brand.white : Brand.greenDark}
+                  />
+                )}
+                <Text style={[styles.voiceBtnText, voiceState === 'rec' && { color: Brand.white }]}>
+                  {voiceState === 'busy'
+                    ? '识别中…'
+                    : voiceState === 'rec'
+                      ? `正在录音 ${voiceSecs}s · 点此停止`
+                      : '语音输入 · 说话转文字'}
+                </Text>
+              </Pressable>
+              <Text style={styles.aiHint}>点一下开始说话，再点一下结束，内容会自动填到上面。安静环境识别更准。</Text>
+            </>
+          )}
           <Pressable style={[styles.aiBtn, aiBusy && { opacity: 0.6 }]} onPress={onAiAssist} disabled={aiBusy}>
             {aiBusy ? (
               <ActivityIndicator color={Brand.green} size="small" />
@@ -576,6 +676,20 @@ const styles = StyleSheet.create({
     marginTop: S.sm,
   },
   aiBtnText: { color: Brand.greenDark, fontSize: F.sub, fontWeight: '800' },
+  voiceBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: S.sm,
+    borderWidth: 1.5,
+    borderColor: Brand.green,
+    backgroundColor: Brand.white,
+    borderRadius: R.pill,
+    height: 52,
+    marginTop: S.md,
+  },
+  voiceBtnRec: { backgroundColor: Brand.danger, borderColor: Brand.danger },
+  voiceBtnText: { color: Brand.greenDark, fontSize: F.body, fontWeight: '800' },
   aiImgBox: { marginTop: S.lg, gap: S.sm },
   aiHint: { fontSize: F.small, color: Brand.textSub, marginTop: 6, lineHeight: 18 },
   bodyInput: {

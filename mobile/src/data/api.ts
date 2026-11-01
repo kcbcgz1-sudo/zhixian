@@ -561,6 +561,15 @@ export async function aiAssist(input: string, category?: string, city?: string, 
     body: JSON.stringify({ input, category, city, images }),
   })) as AiDraft;
 }
+
+// 음성 입력: WAV Blob 업로드 → 인식된 텍스트
+export async function aiAsr(blob: Blob): Promise<{ text: string }> {
+  const form = new FormData();
+  form.append('file', blob, `voice-${Date.now()}.wav`);
+  const res = await fetch(`${API_BASE}/ai/asr`, { method: 'POST', headers: authHeaders(), body: form });
+  if (!res.ok) throw new Error(await parseError(res, '语音识别失败'));
+  return (await res.json()) as { text: string };
+}
 export async function aiImage(prompt: string): Promise<{ url: string; type: string }> {
   return (await activityMutate('/admin/ai/image', {
     method: 'POST',
